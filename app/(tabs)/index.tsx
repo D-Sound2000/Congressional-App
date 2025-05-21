@@ -1,23 +1,29 @@
 import { Text, View, StyleSheet } from 'react-native';
  import { Link } from 'expo-router'; 
+ import Button from '@/components/button';
 
 export default function Index() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Home screen</Text>
-      <Link href="/about" style={styles.button}>
-        Go to About screen
-      </Link>
+      <h1>Welcome to the Home Screen!</h1>
+      <h2>Insert Text Here!</h2>
+      <View style={styles.footerContainer}>
+        <Button theme="primary" label="Option 1" />
+        <Button theme="primary" label="Option 2" />
+        <Button theme="primary" label="Option 3" />
+      </View>
     </View>
+    
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#25292e',
+    backgroundColor: '#abc',
     alignItems: 'center',
     justifyContent: 'center',
+    fontFamily: 'arial',
   },
   text: {
     color: '#fff',
@@ -27,4 +33,10 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     color: '#fff',
   },
+  footerContainer: {
+    flex: 1 / 3,
+    alignItems: 'center',
+    gap: 15,
+  },
+
 });
