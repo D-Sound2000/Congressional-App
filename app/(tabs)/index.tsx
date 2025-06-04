@@ -1,10 +1,14 @@
 import { Text, View, StyleSheet } from 'react-native';
  import { Link } from 'expo-router'; 
  import Button from '@/components/button';
+import HeaderNavBar from '@/components/HeaderNavBar';
+
+
 
 export default function Index() {
   return (
     <View style={styles.container}>
+      <HeaderNavBar title= "home" />
       <h1>Welcome to the Home Screen!</h1>
       <h2>Insert Text Here!</h2>
       <View style={styles.footerContainer}>
@@ -21,8 +25,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#abc',
-    alignItems: 'center',
-    justifyContent: 'center',
+    // alignItems: 'center',
+    // justifyContent: 'center',
     fontFamily: 'arial',
   },
   text: {
