@@ -1,5 +1,7 @@
 import React from 'react';
-import{StyleSheet, Text , TouchableOpacity,View} from 'react-native';
+import{StyleSheet,Dimensions, Text , TouchableOpacity,View} from 'react-native';
+
+const windowWidth = Dimensions.get('window').width;
 
 type CustomHeaderProps = {
     title:string;
@@ -9,12 +11,9 @@ type CustomHeaderProps = {
 const HeaderNavBar: React.FC<CustomHeaderProps> = ({title, onBackPress}) =>{
     return (
         <View style={styles.container}>
-            {onBackPress && (
-                <TouchableOpacity onPress={onBackPress}>
-                    <Text style={styles.backButton}>back</Text>
-                </TouchableOpacity>
-            )}
+            <Text style={styles.title}> notif</Text>
             <Text style={styles.title}> {title}</Text>
+            <Text style={styles.title}> profile</Text>
         </View>
     )
 }
@@ -25,6 +24,7 @@ const styles = StyleSheet.create({
     container: {
         height: 60,
         backgroundColor: '#6200ee',
+        gap: windowWidth/3,
         paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center'
