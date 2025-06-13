@@ -1,5 +1,7 @@
 import React from 'react';
-import{StyleSheet,Dimensions, Text , TouchableOpacity,View} from 'react-native';
+import{StyleSheet,Dimensions, Text ,View, SafeAreaView,TouchableOpacity} from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import {Link} from 'expo-router';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -8,13 +10,24 @@ type CustomHeaderProps = {
     onBackPress?: () => void;
 };
 
+
+
 const HeaderNavBar: React.FC<CustomHeaderProps> = ({title, onBackPress}) =>{
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}> notif</Text>
-            <Text style={styles.title}> {title}</Text>
-            <Text style={styles.title}> profile</Text>
-        </View>
+        <SafeAreaView>
+            <View style={styles.container}>
+                <Link href="/">
+                    <Ionicons name={'person-circle-outline'} color={'white'} size={48} />
+                </Link>
+
+                     <Text style={styles.title}> {title}</Text>
+               
+               <Link href="/">
+                    <Ionicons name={'log-out-outline'} color={'white'} size={48} />
+               </Link>
+
+            </View>
+        </SafeAreaView>
     )
 }
 
@@ -24,7 +37,7 @@ const styles = StyleSheet.create({
     container: {
         height: 60,
         backgroundColor: '#6200ee',
-        gap: windowWidth/3,
+        justifyContent:'space-between',
         paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center'
