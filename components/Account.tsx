@@ -4,6 +4,8 @@ import { StyleSheet, View, Alert } from 'react-native'
 import { Button, Input } from '@rneui/themed'
 import { Session } from '@supabase/supabase-js'
 
+let updateMessage= " "
+
 export default function Account({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true)
   const [username, setUsername] = useState('')
@@ -65,6 +67,8 @@ export default function Account({ session }: { session: Session }) {
 
       const { error } = await supabase.from('profiles').upsert(updates)
 
+      updateMessage = "Your Information Has Been Updated!"
+
       if (error) {
         throw error
       }
@@ -74,6 +78,7 @@ export default function Account({ session }: { session: Session }) {
       }
     } finally {
       setLoading(false)
+
     }
   }
 
@@ -84,9 +89,6 @@ export default function Account({ session }: { session: Session }) {
       </View>
       <View style={styles.verticallySpaced}>
         <Input label="Username" value={username || ''} onChangeText={(text) => setUsername(text)} />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <Input label="Website" value={website || ''} onChangeText={(text) => setWebsite(text)} />
       </View>
 
       <View style={[styles.verticallySpaced, styles.mt20]}>
@@ -100,6 +102,9 @@ export default function Account({ session }: { session: Session }) {
       <View style={styles.verticallySpaced}>
         <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
       </View>
+        <p style={{color:"red", textAlign:"center"}}>
+          {updateMessage}
+        </p>
     </View>
   )
 }

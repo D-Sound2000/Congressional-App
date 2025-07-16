@@ -60,7 +60,7 @@ export default function Auth() {
       </View>
       <View style={styles.verticallySpaced}>
         <Input
-          label="Password"
+          label="Password(More Than 4 Characters)"
           leftIcon={{ type: 'font-awesome', name: 'lock' }}
           onChangeText={(text) => setPassword(text)}
           value={password}
