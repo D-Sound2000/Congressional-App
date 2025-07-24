@@ -1,5 +1,9 @@
 import React, { useState } from 'react'
+<<<<<<< HEAD
 import { Alert, StyleSheet, View, AppState, TextInput, TouchableOpacity, Text } from 'react-native'
+=======
+import { Alert, StyleSheet, View, AppState, Modal, Text, Switch } from 'react-native'
+>>>>>>> a98ccb6b805203c177229d8a15f206bd8a4f95cb
 import { supabase } from '../lib/supabase'
 
 // Tells Supabase Auth to continuously refresh the session automatically if
@@ -18,6 +22,12 @@ export default function Auth() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [diabetesType, setDiabetesType] = useState('')
+  const [insulinDependent, setInsulinDependent] = useState(false)
+  const [averageBloodSugar, setAverageBloodSugar] = useState('')
+  const [medications, setMedications] = useState('')
+  const [emergencyContact, setEmergencyContact] = useState('')
 
   async function signInWithEmail() {
     setLoading(true)
@@ -42,6 +52,35 @@ export default function Auth() {
 
     if (error) Alert.alert(error.message)
     if (!session) Alert.alert('Please check your inbox for email verification!')
+    setLoading(false)
+    if (!error && session) {
+      setShowModal(true)
+    }
+  }
+
+  async function saveDiabetesInfo() {
+    setLoading(true)
+    const user = (await supabase.auth.getUser()).data.user
+    if (!user) {
+      Alert.alert('User not found!')
+      setLoading(false)
+      return
+    }
+    const updates = {
+      id: user.id,
+      diabetes_type: diabetesType,
+      insulin_dependent: insulinDependent,
+      average_blood_sugar: averageBloodSugar ? parseFloat(averageBloodSugar) : null,
+      medications,
+      emergency_contact: emergencyContact,
+      updated_at: new Date(),
+    }
+    const { error } = await supabase.from('profiles').upsert(updates)
+    if (error) {
+      Alert.alert(error.message)
+    } else {
+      setShowModal(false)
+    }
     setLoading(false)
   }
 
@@ -78,6 +117,27 @@ export default function Auth() {
           <Text style={styles.buttonText}>Sign up</Text>
         </TouchableOpacity>
       </View>
+      <Modal
+        visible={showModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, width: '90%' }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Tell us about your diabetes</Text>
+            <Input label="Diabetes Type" value={diabetesType} onChangeText={setDiabetesType} placeholder="e.g. Type 1, Type 2" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={{ marginRight: 10 }}>Insulin Dependent</Text>
+              <Switch value={insulinDependent} onValueChange={setInsulinDependent} />
+            </View>
+            <Input label="Average Blood Sugar" value={averageBloodSugar} onChangeText={setAverageBloodSugar} placeholder="mg/dL" keyboardType="numeric" />
+            <Input label="Medications" value={medications} onChangeText={setMedications} placeholder="List medications" />
+            <Input label="Emergency Contact" value={emergencyContact} onChangeText={setEmergencyContact} placeholder="Name and phone number" />
+            <Button title={loading ? 'Saving...' : 'Save'} onPress={saveDiabetesInfo} disabled={loading} />
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
