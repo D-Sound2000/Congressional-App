@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 
 // Props for the recipe card
 interface RecipeCardProps {
@@ -25,14 +25,25 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   onPress,
   dark = false,
 }) => (
-  <Pressable style={[styles.card, dark && styles.cardDark]} onPress={onPress}>
-    <Image source={image} style={styles.image} />
-    <Text style={[styles.title, dark && styles.titleDark]}>{title}</Text>
+  <Pressable 
+    style={[styles.card, dark && styles.cardDark]} 
+    onPress={onPress}
+  >
+    <Image 
+      source={image} 
+      style={styles.image}
+      resizeMode="cover"
+    />
+    <Text style={[styles.title, dark && styles.titleDark]}>
+      {title}
+    </Text>
     <View style={styles.infoRow}>
       <Text style={[styles.info, dark && styles.infoDark]}>⏱ {time}</Text>
       <Text style={[styles.info, dark && styles.infoDark]}>• {carbs}</Text>
     </View>
-    <View style={[styles.badge, { backgroundColor: badge.color }]}> 
+    <View 
+      style={[styles.badge, { backgroundColor: badge.color }]}
+    > 
       <Text style={styles.badgeText}>{badge.label}</Text>
     </View>
   </Pressable>
@@ -61,7 +72,6 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 12,
     marginBottom: 8,
-    resizeMode: 'cover',
   },
   title: {
     fontSize: 16,

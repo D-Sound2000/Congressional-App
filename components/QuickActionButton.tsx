@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, View, ViewStyle } from 'react-native';
+import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 // Props for the quick action button
@@ -25,7 +25,7 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({
   style,
 }) => (
   <Pressable style={[styles.button, { backgroundColor }, style]} onPress={onPress}>
-    <Ionicons name={icon} size={22} color={textColor} style={styles.icon} />
+    <Ionicons name={icon as any} size={22} color={textColor} style={styles.icon} />
     <Text style={[styles.label, { color: textColor }]}>{label}</Text>
   </Pressable>
 );
@@ -36,21 +36,25 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     marginHorizontal: 4,
     marginVertical: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+    minHeight: 44,
   },
   icon: {
-    marginRight: 8,
+    marginRight: 4,
   },
   label: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
   },
 }); 
