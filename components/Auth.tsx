@@ -1,9 +1,5 @@
 import React, { useState } from 'react'
-<<<<<<< HEAD
-import { Alert, StyleSheet, View, AppState, TextInput, TouchableOpacity, Text } from 'react-native'
-=======
-import { Alert, StyleSheet, View, AppState, Modal, Text, Switch } from 'react-native'
->>>>>>> a98ccb6b805203c177229d8a15f206bd8a4f95cb
+import { Alert, StyleSheet, View, AppState, TextInput, TouchableOpacity, Text, Modal, Switch } from 'react-native'
 import { supabase } from '../lib/supabase'
 
 // Tells Supabase Auth to continuously refresh the session automatically if
@@ -126,15 +122,42 @@ export default function Auth() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, width: '90%' }}>
             <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Tell us about your diabetes</Text>
-            <Input label="Diabetes Type" value={diabetesType} onChangeText={setDiabetesType} placeholder="e.g. Type 1, Type 2" />
+            <Text style={styles.label}>Diabetes Type</Text>
+            <TextInput
+              style={styles.input}
+              value={diabetesType}
+              onChangeText={setDiabetesType}
+              placeholder="e.g. Type 1, Type 2"
+            />
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
               <Text style={{ marginRight: 10 }}>Insulin Dependent</Text>
               <Switch value={insulinDependent} onValueChange={setInsulinDependent} />
             </View>
-            <Input label="Average Blood Sugar" value={averageBloodSugar} onChangeText={setAverageBloodSugar} placeholder="mg/dL" keyboardType="numeric" />
-            <Input label="Medications" value={medications} onChangeText={setMedications} placeholder="List medications" />
-            <Input label="Emergency Contact" value={emergencyContact} onChangeText={setEmergencyContact} placeholder="Name and phone number" />
-            <Button title={loading ? 'Saving...' : 'Save'} onPress={saveDiabetesInfo} disabled={loading} />
+            <Text style={styles.label}>Average Blood Sugar</Text>
+            <TextInput
+              style={styles.input}
+              value={averageBloodSugar}
+              onChangeText={setAverageBloodSugar}
+              placeholder="mg/dL"
+              keyboardType="numeric"
+            />
+            <Text style={styles.label}>Medications</Text>
+            <TextInput
+              style={styles.input}
+              value={medications}
+              onChangeText={setMedications}
+              placeholder="List medications"
+            />
+            <Text style={styles.label}>Emergency Contact</Text>
+            <TextInput
+              style={styles.input}
+              value={emergencyContact}
+              onChangeText={setEmergencyContact}
+              placeholder="Name and phone number"
+            />
+            <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={saveDiabetesInfo}>
+              <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

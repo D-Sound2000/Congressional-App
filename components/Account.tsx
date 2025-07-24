@@ -118,35 +118,35 @@ export default function Account({ session }: { session: Session }) {
       </View>
 
       <View style={styles.verticallySpaced}>
-        <Input label="Diabetes Type" value={diabetesType} onChangeText={setDiabetesType} placeholder="e.g. Type 1, Type 2" />
+        <Text style={styles.label}>Diabetes Type</Text>
+        <TextInput style={styles.input} value={diabetesType} onChangeText={setDiabetesType} placeholder="e.g. Type 1, Type 2" />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Insulin Dependent" value={insulinDependent ? 'Yes' : 'No'}
+        <Text style={styles.label}>Insulin Dependent</Text>
+        <TextInput 
+          style={[styles.input, styles.disabledInput]} 
+          value={insulinDependent ? 'Yes' : 'No'}
           onFocus={() => setInsulinDependent(!insulinDependent)}
           editable={false}
-          rightIcon={{ type: 'font-awesome', name: insulinDependent ? 'toggle-on' : 'toggle-off' }}
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Average Blood Sugar" value={averageBloodSugar} onChangeText={setAverageBloodSugar} placeholder="mg/dL" keyboardType="numeric" />
+        <Text style={styles.label}>Average Blood Sugar</Text>
+        <TextInput style={styles.input} value={averageBloodSugar} onChangeText={setAverageBloodSugar} placeholder="mg/dL" keyboardType="numeric" />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Medications" value={medications} onChangeText={setMedications} placeholder="List medications" />
+        <Text style={styles.label}>Medications</Text>
+        <TextInput style={styles.input} value={medications} onChangeText={setMedications} placeholder="List medications" />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Emergency Contact" value={emergencyContact} onChangeText={setEmergencyContact} placeholder="Name and phone number" />
+        <Text style={styles.label}>Emergency Contact</Text>
+        <TextInput style={styles.input} value={emergencyContact} onChangeText={setEmergencyContact} placeholder="Name and phone number" />
       </View>
 
       <View style={[styles.verticallySpaced, styles.mt20]}>
-<<<<<<< HEAD
         <TouchableOpacity 
           style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={() => updateProfile({ username, website, avatar_url: avatarUrl })}
-=======
-        <Button
-          title={loading ? 'Loading ...' : 'Update'}
           onPress={() => updateProfile({ username, website, avatar_url: avatarUrl, diabetes_type: diabetesType, insulin_dependent: insulinDependent, average_blood_sugar: averageBloodSugar, medications, emergency_contact: emergencyContact })}
->>>>>>> a98ccb6b805203c177229d8a15f206bd8a4f95cb
           disabled={loading}
         >
           <Text style={styles.buttonText}>{loading ? 'Loading ...' : 'Update'}</Text>
