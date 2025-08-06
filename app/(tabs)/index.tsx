@@ -5,6 +5,8 @@ import QuickActionButton from '@/components/QuickActionButton';
 import RecipeCard from '@/components/RecipeCard';
 import ReminderCard from '@/components/ReminderCard';
 import FloatingEmergencyButton from '@/components/FloatingEmergencyButton';
+import { supabase } from '@/lib/supabase';
+import { router } from 'expo-router';
 
 // Mock data for the blood sugar snapshot graph
 const bloodSugarData = [
@@ -58,17 +60,19 @@ const reminders = [
 ];
 
 // Helper to get greeting
-function getGreeting() {
+function getGreeting(username: string) {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning, Om 👋';
-  if (hour < 17) return 'Good afternoon, Om 👋';
-  return 'Good evening, Om 👋';
+  const name = username || 'there';
+  if (hour < 12) return `Good morning, ${name} 👋`;
+  if (hour < 17) return `Good afternoon, ${name} 👋`;
+  return `Good evening, ${name} 👋`;
 }
 
 export default function Index() {
   // Typing animation state for greeting
   const [typedGreeting, setTypedGreeting] = useState('');
-  const greeting = getGreeting();
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Theme state
   const [theme, setTheme] = useState('light');
@@ -90,7 +94,34 @@ export default function Index() {
     quickAction3: isDark ? '#2d3a4d' : '#e8f5e9',
   };
 
+  // Fetch user profile
   useEffect(() => {
+    async function fetchUserProfile() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', user.id)
+            .single();
+          
+          if (data && data.username) {
+            setUsername(data.username);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserProfile();
+  }, []);
+
+  useEffect(() => {
+    const greeting = getGreeting(username);
     setTypedGreeting('');
     let i = 0;
     const interval = setInterval(() => {
@@ -99,7 +130,7 @@ export default function Index() {
       if (i === greeting.length) clearInterval(interval);
     }, 40);
     return () => clearInterval(interval);
-  }, [greeting]);
+  }, [username]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}> 
@@ -156,6 +187,21 @@ export default function Index() {
               style={styles.quickActionBtn}
             />
           </View>
+        </View>
+        
+        {/* Recipe Finder Button */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+          <TouchableOpacity
+            style={styles.recipeFinderButton}
+            onPress={() => router.push('/recipe-finder')}
+          >
+            <Text style={[styles.recipeFinderText, { color: colors.text }]}>
+              🍽️ Recipe Finder
+            </Text>
+            <Text style={[styles.recipeFinderSubtext, { color: colors.text }]}>
+              Find diabetes-friendly recipes by sugar content
+            </Text>
+          </TouchableOpacity>
         </View>
         {/* Today's Smart Picks (Recipe Cards) */}
         <View style={styles.sectionHeaderRow}>
@@ -299,5 +345,22 @@ const styles = StyleSheet.create({
   remindersList: {
     marginHorizontal: 8,
     marginBottom: 8,
+  },
+  recipeFinderButton: {
+    padding: 16,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: '#4caf50',
+  },
+  recipeFinderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  recipeFinderSubtext: {
+    fontSize: 14,
+    opacity: 0.7,
   },
 });
