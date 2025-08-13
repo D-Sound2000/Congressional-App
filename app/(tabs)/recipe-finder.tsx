@@ -177,7 +177,7 @@ export default function RecipeFinder() {
             excludeIngredients = `&excludeIngredients=${encodeURIComponent(ingredientsToExclude.join(','))}`;
           }
           
-          url = `${BASE_URL}/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(ingredientsString)}&number=5&ranking=1&ignorePantry=false${excludeIngredients}`;
+          url = `${BASE_URL}/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(ingredientsString)}&number=5&ranking=2&ignorePantry=true`;
           break;
           
         case 'nutrients':
@@ -192,6 +192,7 @@ export default function RecipeFinder() {
       console.log('Searching URL:', url);
       const response = await fetch(url);
       const data = await response.json();
+      console.log('API Response:', data);
 
       console.log('API Response:', data);
 
@@ -204,6 +205,7 @@ export default function RecipeFinder() {
           const nutritionUrl = `${BASE_URL}/informationBulk?apiKey=${SPOONACULAR_API_KEY}&ids=${recipeIds}`;
           const nutritionResponse = await fetch(nutritionUrl);
           const nutritionData = await nutritionResponse.json();
+          console.log('Nutrition data:', nutritionData);
           
           processedRecipes = data.map((recipe: any) => {
             const nutritionInfo = nutritionData.find((n: any) => n.id === recipe.id);
@@ -372,7 +374,7 @@ export default function RecipeFinder() {
         }
 
         const recipe: Recipe = {
-          id: Date.now(), // Generate temporary ID
+          id: data.id, // Generate temporary ID
           title: data.title,
           image: data.image || 'https://via.placeholder.com/300x200',
           sugar: nutritionData?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
