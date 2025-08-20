@@ -133,25 +133,25 @@ export default function Index() {
   }, [username]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+    <View style={[styles.container, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}> 
       {/* Combined App Title and Greeting Card with Theme Toggle */}
-      <View style={[styles.greetingCard, { backgroundColor: colors.card, shadowColor: colors.shadow, borderColor: colors.cardBorder, borderWidth: 1.5 }]}> 
-        <View style={styles.greetingRow}>
-          <Text style={[styles.appTitle, { color: colors.title }]}>DiaBite</Text>
-          <Pressable
-            style={styles.themeToggle}
-            onPress={() => setTheme(isDark ? 'light' : 'dark')}
-            accessibilityLabel="Toggle dark/light mode"
-          >
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>{isDark ? 'Dark' : 'Light'}</Text>
-          </Pressable>
-        </View>
-        <Text style={[styles.greetingText, { color: colors.greeting }]}>{typedGreeting}</Text>
+      <View style={[styles.greetingCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
+        <Text style={[styles.appTitle, { color: isDark ? '#90caf9' : '#1976d2' }]}>DiaBite</Text>
+        <Text style={[styles.greetingText, { color: isDark ? '#fff' : '#333' }]}>{typedGreeting}</Text>
+        <Pressable
+          style={[styles.themeToggleButton, { backgroundColor: isDark ? '#2d3a4d' : '#f0f0f0' }]}
+          onPress={() => setTheme(isDark ? 'light' : 'dark')}
+          accessibilityLabel="Toggle dark/light mode"
+        >
+          <Text style={[styles.themeToggleText, { color: isDark ? '#fff' : '#333' }]}>
+            {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </Text>
+        </Pressable>
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Blood Sugar Snapshot Section */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.card, shadowColor: colors.shadow, borderColor: colors.cardBorder, borderWidth: 1.2 }]}> 
-          <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Blood Sugar Snapshot</Text>
+        <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
+          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Blood Sugar Snapshot</Text>
           <BloodSugarSnapshot
             glucose={110}
             time="8:00 AM"
@@ -160,12 +160,12 @@ export default function Index() {
           />
         </View>
         {/* Quick Action Buttons */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}> 
+        <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}> 
           <View style={styles.quickActionsRow}>
             <QuickActionButton
               icon="add-circle-outline"
               label="Log Sugar"
-              backgroundColor={colors.quickAction}
+              backgroundColor={isDark ? '#2d3a4d' : '#e3f2fd'}
               textColor={isDark ? '#fff' : '#333'}
               onPress={() => alert('Log Sugar')}
               style={styles.quickActionBtn}
@@ -173,7 +173,7 @@ export default function Index() {
             <QuickActionButton
               icon="calendar-outline"
               label="Planner"
-              backgroundColor={colors.quickAction2}
+              backgroundColor={isDark ? '#2d3a4d' : '#fce4ec'}
               textColor={isDark ? '#fff' : '#333'}
               onPress={() => alert('Planner')}
               style={styles.quickActionBtn}
@@ -181,7 +181,7 @@ export default function Index() {
             <QuickActionButton
               icon="camera-outline"
               label="Scan Food"
-              backgroundColor={colors.quickAction3}
+              backgroundColor={isDark ? '#2d3a4d' : '#e8f5e9'}
               textColor={isDark ? '#fff' : '#333'}
               onPress={() => alert('Scan Food')}
               style={styles.quickActionBtn}
@@ -205,9 +205,9 @@ export default function Index() {
         </View>
         {/* Today's Smart Picks (Recipe Cards) */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Today's Smart Picks</Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Today's Smart Picks</Text>
           <TouchableOpacity onPress={() => alert('See More Recipes')}>
-            <Text style={[styles.seeMore, { color: colors.seeMore }]}>➡️ See More Recipes</Text>
+            <Text style={[styles.seeMore, { color: isDark ? '#90caf9' : '#1976d2' }]}>➡️ See More Recipes</Text>
           </TouchableOpacity>
         </View>
         <FlatList
@@ -230,8 +230,8 @@ export default function Index() {
           style={{ marginBottom: 16 }}
         />
         {/* Reminders Section */}
-        <View style={[styles.sectionCard, { backgroundColor: colors.card, shadowColor: colors.shadow, borderColor: colors.cardBorder, borderWidth: 1.2 }]}> 
-          <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Reminders</Text>
+        <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
+          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Reminders</Text>
           <View style={styles.remindersList}>
             {reminders.map((reminder, idx) => (
               <ReminderCard
@@ -258,92 +258,98 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   greetingCard: {
-    borderRadius: 26,
+    borderRadius: 20,
     marginHorizontal: 16,
-    marginTop: 18,
+    marginTop: 16,
     marginBottom: 8,
-    paddingVertical: 28,
+    paddingVertical: 24,
     paddingHorizontal: 16,
     alignItems: 'center',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
   },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginBottom: 4,
+  themeToggleButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  themeToggle: {
-    marginLeft: 12,
-    padding: 6,
-    borderRadius: 16,
+  themeToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   appTitle: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: 'bold',
-    letterSpacing: 2,
+    letterSpacing: 1,
     fontFamily: 'System',
     marginBottom: 0,
     textAlign: 'center',
   },
   greetingText: {
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '600',
     textAlign: 'center',
-    minHeight: 36,
-    letterSpacing: 1,
+    minHeight: 28,
+    letterSpacing: 0.5,
     marginTop: 2,
   },
   scroll: {
     flex: 1,
   },
   sectionCard: {
-    borderRadius: 22,
+    borderRadius: 16,
     marginHorizontal: 16,
-    marginTop: 18,
+    marginTop: 12,
     marginBottom: 8,
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 12,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     fontFamily: 'System',
   },
   quickActionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: 8,
+    paddingHorizontal: 4,
   },
   quickActionBtn: {
     flex: 1,
-    marginHorizontal: 6,
+    marginHorizontal: 2,
     minWidth: 90,
-    maxWidth: 120,
+    maxWidth: 110,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 8,
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 12,
   },
   seeMore: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   remindersList: {
-    marginHorizontal: 8,
+    marginHorizontal: 4,
     marginBottom: 8,
   },
   recipeFinderButton: {
@@ -364,3 +370,5 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
+
+

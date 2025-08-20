@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { Alert, StyleSheet, View, AppState, Modal, Text, Switch } from 'react-native'
+import { Alert, StyleSheet, View, AppState, TextInput, TouchableOpacity, Text, Modal, Switch } from 'react-native'
 import { supabase } from '../lib/supabase'
-import { Button, Input } from '@rneui/themed'
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground. When this is added, you will continue to receive
@@ -84,20 +83,20 @@ export default function Auth() {
   return (
     <View style={styles.container}>
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Input
-          label="Email"
-          leftIcon={{ type: 'font-awesome', name: 'envelope' }}
-          onChangeText={(text) => setEmail(text)}
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          onChangeText={(text: string) => setEmail(text)}
           value={email}
           placeholder="email@address.com"
           autoCapitalize={'none'}
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input
-          label="Password(More Than 4 Characters)"
-          leftIcon={{ type: 'font-awesome', name: 'lock' }}
-          onChangeText={(text) => setPassword(text)}
+        <Text style={styles.label}>Password (More Than 4 Characters)</Text>
+        <TextInput
+          style={styles.input}
+          onChangeText={(text: string) => setPassword(text)}
           value={password}
           secureTextEntry={true}
           placeholder="Password"
@@ -105,10 +104,14 @@ export default function Auth() {
         />
       </View>
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button title="Sign in" disabled={loading} onPress={() => signInWithEmail()} />
+        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={() => signInWithEmail()}>
+          <Text style={styles.buttonText}>Sign in</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.verticallySpaced}>
-        <Button title="Sign up" disabled={loading} onPress={() => signUpWithEmail()} />
+        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={() => signUpWithEmail()}>
+          <Text style={styles.buttonText}>Sign up</Text>
+        </TouchableOpacity>
       </View>
       <Modal
         visible={showModal}
@@ -119,15 +122,42 @@ export default function Auth() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, width: '90%' }}>
             <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Tell us about your diabetes</Text>
-            <Input label="Diabetes Type" value={diabetesType} onChangeText={setDiabetesType} placeholder="e.g. Type 1, Type 2" />
+            <Text style={styles.label}>Diabetes Type</Text>
+            <TextInput
+              style={styles.input}
+              value={diabetesType}
+              onChangeText={setDiabetesType}
+              placeholder="e.g. Type 1, Type 2"
+            />
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
               <Text style={{ marginRight: 10 }}>Insulin Dependent</Text>
               <Switch value={insulinDependent} onValueChange={setInsulinDependent} />
             </View>
-            <Input label="Average Blood Sugar" value={averageBloodSugar} onChangeText={setAverageBloodSugar} placeholder="mg/dL" keyboardType="numeric" />
-            <Input label="Medications" value={medications} onChangeText={setMedications} placeholder="List medications" />
-            <Input label="Emergency Contact" value={emergencyContact} onChangeText={setEmergencyContact} placeholder="Name and phone number" />
-            <Button title={loading ? 'Saving...' : 'Save'} onPress={saveDiabetesInfo} disabled={loading} />
+            <Text style={styles.label}>Average Blood Sugar</Text>
+            <TextInput
+              style={styles.input}
+              value={averageBloodSugar}
+              onChangeText={setAverageBloodSugar}
+              placeholder="mg/dL"
+              keyboardType="numeric"
+            />
+            <Text style={styles.label}>Medications</Text>
+            <TextInput
+              style={styles.input}
+              value={medications}
+              onChangeText={setMedications}
+              placeholder="List medications"
+            />
+            <Text style={styles.label}>Emergency Contact</Text>
+            <TextInput
+              style={styles.input}
+              value={emergencyContact}
+              onChangeText={setEmergencyContact}
+              placeholder="Name and phone number"
+            />
+            <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={saveDiabetesInfo}>
+              <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -147,5 +177,33 @@ const styles = StyleSheet.create({
   },
   mt20: {
     marginTop: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 })

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 
 // Props for the reminder card
 interface ReminderCardProps {
@@ -15,7 +15,10 @@ interface ReminderCardProps {
  * Displays a minimal card-like entry for reminders.
  */
 const ReminderCard: React.FC<ReminderCardProps> = ({ icon, text, time, onPress, dark = false }) => (
-  <Pressable style={[styles.card, dark && styles.cardDark]} onPress={onPress}>
+  <Pressable 
+    style={[styles.card, dark && styles.cardDark]} 
+    onPress={onPress}
+  >
     <Text style={[styles.icon, dark && styles.iconDark]}>{icon}</Text>
     <View style={styles.textContainer}>
       <Text style={[styles.text, dark && styles.textDark]}>{text}</Text>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { StyleSheet, View, Alert } from 'react-native'
-import { Button, Input } from '@rneui/themed'
+import { StyleSheet, View, Alert, TextInput, TouchableOpacity, Text } from 'react-native'
 import { Session } from '@supabase/supabase-js'
 
 let updateMessage= " "
@@ -110,46 +109,58 @@ export default function Account({ session }: { session: Session }) {
   return (
     <View style={styles.container}>
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Input label="Email" value={session?.user?.email} disabled />
+        <Text style={styles.label}>Email</Text>
+        <TextInput style={[styles.input, styles.disabledInput]} value={session?.user?.email} editable={false} />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Username" value={username || ''} onChangeText={(text) => setUsername(text)} />
+        <Text style={styles.label}>Username</Text>
+        <TextInput style={styles.input} value={username || ''} onChangeText={(text: string) => setUsername(text)} />
       </View>
 
       <View style={styles.verticallySpaced}>
-        <Input label="Diabetes Type" value={diabetesType} onChangeText={setDiabetesType} placeholder="e.g. Type 1, Type 2" />
+        <Text style={styles.label}>Diabetes Type</Text>
+        <TextInput style={styles.input} value={diabetesType} onChangeText={setDiabetesType} placeholder="e.g. Type 1, Type 2" />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Insulin Dependent" value={insulinDependent ? 'Yes' : 'No'}
+        <Text style={styles.label}>Insulin Dependent</Text>
+        <TextInput 
+          style={[styles.input, styles.disabledInput]} 
+          value={insulinDependent ? 'Yes' : 'No'}
           onFocus={() => setInsulinDependent(!insulinDependent)}
           editable={false}
-          rightIcon={{ type: 'font-awesome', name: insulinDependent ? 'toggle-on' : 'toggle-off' }}
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Average Blood Sugar" value={averageBloodSugar} onChangeText={setAverageBloodSugar} placeholder="mg/dL" keyboardType="numeric" />
+        <Text style={styles.label}>Average Blood Sugar</Text>
+        <TextInput style={styles.input} value={averageBloodSugar} onChangeText={setAverageBloodSugar} placeholder="mg/dL" keyboardType="numeric" />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Medications" value={medications} onChangeText={setMedications} placeholder="List medications" />
+        <Text style={styles.label}>Medications</Text>
+        <TextInput style={styles.input} value={medications} onChangeText={setMedications} placeholder="List medications" />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input label="Emergency Contact" value={emergencyContact} onChangeText={setEmergencyContact} placeholder="Name and phone number" />
+        <Text style={styles.label}>Emergency Contact</Text>
+        <TextInput style={styles.input} value={emergencyContact} onChangeText={setEmergencyContact} placeholder="Name and phone number" />
       </View>
 
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button
-          title={loading ? 'Loading ...' : 'Update'}
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
           onPress={() => updateProfile({ username, website, avatar_url: avatarUrl, diabetes_type: diabetesType, insulin_dependent: insulinDependent, average_blood_sugar: averageBloodSugar, medications, emergency_contact: emergencyContact })}
           disabled={loading}
-        />
+        >
+          <Text style={styles.buttonText}>{loading ? 'Loading ...' : 'Update'}</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.verticallySpaced}>
-        <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
+        <TouchableOpacity style={styles.button} onPress={() => supabase.auth.signOut()}>
+          <Text style={styles.buttonText}>Sign Out</Text>
+        </TouchableOpacity>
       </View>
-        <p style={{color:"red", textAlign:"center"}}>
-          {updateMessage}
-        </p>
+      <Text style={styles.updateMessage}>
+        {updateMessage}
+      </Text>
     </View>
   )
 }
@@ -166,5 +177,42 @@ const styles = StyleSheet.create({
   },
   mt20: {
     marginTop: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  disabledInput: {
+    backgroundColor: '#f5f5f5',
+    color: '#666',
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  updateMessage: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 10,
   },
 })

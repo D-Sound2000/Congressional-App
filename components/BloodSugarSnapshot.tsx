@@ -38,29 +38,29 @@ export default BloodSugarSnapshot;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#b2dfdb', // Soft green
-    borderRadius: 18,
-    padding: 20,
-    marginVertical: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 12,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   glucose: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#222',
     marginBottom: 4,
   },
   context: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#388e3c',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   trend: {
-    marginTop: 8,
-    fontSize: 15,
+    marginTop: 6,
+    fontSize: 13,
     color: '#333',
   },
 }); 
