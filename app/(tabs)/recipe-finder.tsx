@@ -12,7 +12,6 @@ import {
   FlatList,
   Modal,
   Linking,
-  Switch,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
@@ -84,7 +83,6 @@ export default function RecipeFinder() {
   
   // Ingredient search states
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
-  const [excludeIngredients, setExcludeIngredients] = useState('');
   
   // Website URL extraction
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -93,6 +91,9 @@ export default function RecipeFinder() {
   // Replace with your Spoonacular API key
   const SPOONACULAR_API_KEY = '75eb74379764490691e81b22b93ebf10';
   const BASE_URL = 'https://api.spoonacular.com/recipes';
+
+  const [nutritionValues, setNutritionValues] = useState<any>(null);
+
 
   useEffect(() => {
     loadFavorites();
@@ -124,16 +125,18 @@ export default function RecipeFinder() {
     );
   };
 
-  const filterRecipesByIngredients = (recipes: Recipe[], selectedIngredients: string[]) => {
-    // Basic pantry items that are assumed to be available
-    const pantryItems = ['salt', 'pepper', 'water', 'oil', 'olive oil', 'butter', 'flour', 'sugar'];
-    const allowedIngredients = [...selectedIngredients, ...pantryItems];
+  // Helper function to extract nutrition data from API response
+  const extractNutritionData = (nutritionData: any, fallbackCalories?: number) => {
+    const getNutrientAmount = (name: string) => 
+      nutritionData?.nutrients?.find((n: any) => n.name === name)?.amount || 0;
     
-    return recipes.filter(recipe => {
-      // For now, we'll trust the API ranking, but we could add additional filtering here
-      // if we had access to the full ingredient list for each recipe
-      return true; // The API ranking=1 should handle this, but we can add more filtering if needed
-    });
+    return {
+      sugar: getNutrientAmount('Sugar'),
+      calories: fallbackCalories || getNutrientAmount('Calories'),
+      carbs: getNutrientAmount('Carbohydrates'),
+      protein: getNutrientAmount('Protein'),
+      fat: getNutrientAmount('Fat'),
+    };
   };
 
   const searchRecipes = async () => {
@@ -158,25 +161,6 @@ export default function RecipeFinder() {
           
         case 'ingredients':
           const ingredientsString = selectedIngredients.join(',');
-          // Use ranking=1 for maximum ingredient matching and exclude common ingredients not selected
-          let excludeIngredients = '';
-          const commonIngredientsToExclude = [
-            'zucchini', 'carrots', 'broccoli', 'spinach', 'bell peppers', 'mushrooms',
-            'onions', 'garlic', 'tomatoes', 'cucumber', 'lettuce', 'apples', 'bananas',
-            'oranges', 'strawberries', 'blueberries', 'lemons', 'limes', 'beef', 'pork',
-            'fish', 'shrimp', 'eggs', 'milk', 'cheese', 'yogurt', 'pasta', 'bread',
-            'potatoes', 'quinoa', 'oats', 'nuts', 'seeds', 'beans', 'lentils'
-          ];
-          
-          // Exclude ingredients that are not selected
-          const ingredientsToExclude = commonIngredientsToExclude.filter(
-            ingredient => !selectedIngredients.includes(ingredient)
-          );
-          
-          if (ingredientsToExclude.length > 0) {
-            excludeIngredients = `&excludeIngredients=${encodeURIComponent(ingredientsToExclude.join(','))}`;
-          }
-          
           url = `${BASE_URL}/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(ingredientsString)}&number=5&ranking=2&ignorePantry=true`;
           break;
           
@@ -192,9 +176,6 @@ export default function RecipeFinder() {
       console.log('Searching URL:', url);
       const response = await fetch(url);
       const data = await response.json();
-      console.log('API Response:', data);
-
-      console.log('API Response:', data);
 
       if (data && data.length > 0) {
         let processedRecipes: Recipe[] = [];
@@ -202,22 +183,20 @@ export default function RecipeFinder() {
         if (searchMode === 'ingredients') {
           // Handle ingredient search results - need to get nutrition data separately
           const recipeIds = data.map((recipe: any) => recipe.id).join(',');
-          const nutritionUrl = `${BASE_URL}/informationBulk?apiKey=${SPOONACULAR_API_KEY}&ids=${recipeIds}`;
+          const nutritionUrl = `${BASE_URL}/informationBulk?apiKey=${SPOONACULAR_API_KEY}&ids=${recipeIds}&includeNutrition=true`;
           const nutritionResponse = await fetch(nutritionUrl);
           const nutritionData = await nutritionResponse.json();
+          setNutritionValues(nutritionData);
           console.log('Nutrition data:', nutritionData);
           
           processedRecipes = data.map((recipe: any) => {
             const nutritionInfo = nutritionData.find((n: any) => n.id === recipe.id);
+            const nutrition = extractNutritionData(nutritionInfo?.nutrition);
             return {
               id: recipe.id,
               title: recipe.title,
               image: recipe.image,
-              sugar: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
-              calories: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
-              carbs: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-              protein: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-              fat: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
+              ...nutrition,
               readyInMinutes: nutritionInfo?.readyInMinutes || 0,
               servings: nutritionInfo?.servings || 1,
               sourceUrl: nutritionInfo?.sourceUrl,
@@ -228,19 +207,13 @@ export default function RecipeFinder() {
         } else if (searchMode === 'nutrients') {
           // Handle nutrient search results
           processedRecipes = data.map((recipe: any) => {
-            console.log('Nutrient recipe data:', recipe);
-            const nutrition = recipe.nutrition;
-            console.log('Nutrition data:', nutrition);
+            const nutrition = extractNutritionData(recipe.nutrition, recipe.calories);
             
             return {
               id: recipe.id,
               title: recipe.title,
               image: recipe.image,
-              sugar: nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
-              calories: recipe.calories || nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
-              carbs: nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-              protein: nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-              fat: nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
+              ...nutrition,
               readyInMinutes: recipe.readyInMinutes || 0,
               servings: recipe.servings || 1,
               sourceUrl: recipe.sourceUrl,
@@ -261,13 +234,10 @@ export default function RecipeFinder() {
               
               processedRecipes = processedRecipes.map(recipe => {
                 const nutritionInfo = nutritionData.find((n: any) => n.id === recipe.id);
+                const nutrition = extractNutritionData(nutritionInfo?.nutrition, recipe.calories);
                 return {
                   ...recipe,
-                  sugar: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
-                  calories: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || recipe.calories || 0,
-                  carbs: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-                  protein: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-                  fat: nutritionInfo?.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
+                  ...nutrition,
                 };
               });
             } catch (error) {
@@ -277,19 +247,13 @@ export default function RecipeFinder() {
         } else {
           // Handle text search results
           processedRecipes = data.results?.map((recipe: any) => {
-            console.log('Text search recipe data:', recipe);
-            const nutrition = recipe.nutrition;
-            console.log('Nutrition data:', nutrition);
+            const nutrition = extractNutritionData(recipe.nutrition, recipe.calories);
             
             return {
               id: recipe.id,
               title: recipe.title,
               image: recipe.image,
-              sugar: nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
-              calories: recipe.calories || nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
-              carbs: nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-              protein: nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-              fat: nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
+              ...nutrition,
               readyInMinutes: recipe.readyInMinutes,
               servings: recipe.servings,
               sourceUrl: recipe.sourceUrl,
@@ -330,7 +294,6 @@ export default function RecipeFinder() {
           })
         );
         
-        console.log('Processed recipes with nutrition widget data:', processedRecipes);
         setRecipes(processedRecipes);
       } else {
         console.log('No results found or empty results array');
@@ -373,15 +336,12 @@ export default function RecipeFinder() {
           console.log('Could not fetch nutrition data for extracted recipe:', error);
         }
 
+        const nutrition = extractNutritionData(nutritionData);
         const recipe: Recipe = {
           id: data.id, // Generate temporary ID
           title: data.title,
           image: data.image || 'https://via.placeholder.com/300x200',
-          sugar: nutritionData?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
-          calories: nutritionData?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
-          carbs: nutritionData?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-          protein: nutritionData?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-          fat: nutritionData?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
+          ...nutrition,
           readyInMinutes: data.readyInMinutes || 0,
           servings: data.servings || 1,
           sourceUrl: websiteUrl,
@@ -445,6 +405,12 @@ export default function RecipeFinder() {
         };
       }
 
+      console.log('selectedRecipe', selectedRecipe);
+
+      const nutrition = extractNutritionData(data.nutrition);
+      console.log('data.nutrition', data);
+      const nutritionFacts = nutritionValues.filter((nutrient: any)=> nutrient.id === data.id)
+      console.log('nutritionFacts', nutritionFacts);
       const recipeDetail: RecipeDetail = {
         id: data.id,
         title: data.title,
@@ -453,11 +419,11 @@ export default function RecipeFinder() {
         instructions: data.instructions.replace(/<[^>]*>/g, ''),
         ingredients: data.extendedIngredients?.map((ing: any) => ing.original) || [],
         nutrition: {
-          calories: widgetNutrition.calories || data.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
-          carbs: widgetNutrition.carbs || data.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-          protein: widgetNutrition.protein || data.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-          fat: widgetNutrition.fat || data.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
-          sugar: widgetNutrition.sugar || data.nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
+          calories: nutritionFacts[0].nutrition.nutrients[0].amount,
+          carbs:  nutritionFacts[0].nutrition.nutrients[3].amount,
+          protein:  nutritionFacts[0].nutrition.nutrients[10].amount,
+          fat:  nutritionFacts[0].nutrition.nutrients[1].amount,
+          sugar: nutritionFacts[0].nutrition.nutrients[5].amount,
         },
         readyInMinutes: data.readyInMinutes,
         servings: data.servings,
@@ -573,7 +539,7 @@ export default function RecipeFinder() {
       <Text style={styles.pantryNote}>
         💡 Salt, pepper, water, oil, butter, flour, and sugar are assumed to be available
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.ingredientScroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {COMMON_INGREDIENTS.map((ingredient) => (
           <TouchableOpacity
             key={ingredient}
@@ -834,7 +800,7 @@ export default function RecipeFinder() {
                   <View style={styles.nutritionGrid}>
                     <View style={styles.nutritionItem}>
                       <Text style={styles.nutritionLabel}>Calories</Text>
-                      <Text style={styles.nutritionValue}>{selectedRecipe.nutrition.calories.toFixed(0)}</Text>
+                      <Text style={styles.nutritionValue}>{selectedRecipe.nutrition.calories.toFixed(1)}</Text>
                     </View>
                     <View style={styles.nutritionItem}>
                       <Text style={styles.nutritionLabel}>Carbs</Text>
@@ -1268,9 +1234,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'center',
   },
-  ingredientScroll: {
-    // Add any specific styles for the horizontal scroll view if needed
-  },
+
   ingredientButton: {
     backgroundColor: '#f0f0f0',
     paddingVertical: 8,
