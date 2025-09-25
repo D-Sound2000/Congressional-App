@@ -156,7 +156,9 @@ export default function RecipeFinder() {
       
       switch (searchMode) {
         case 'text':
-          url = `${BASE_URL}/complexSearch?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(searchQuery)}&number=5&addRecipeNutrition=true&fillIngredients=true`;
+          // url = `${BASE_URL}/complexSearch?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(searchQuery)}&number=5`;
+          url = `${BASE_URL}/autocomplete?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(searchQuery)}&number=5`;
+          console.log('searchQuery:', encodeURIComponent(searchQuery));
           break;
           
         case 'ingredients':
@@ -174,8 +176,16 @@ export default function RecipeFinder() {
       }
 
       console.log('Searching URL:', url);
-      const response = await fetch(url);
-      const data = await response.json();
+      let response = await fetch(url);
+      let data = await response.json();
+      console.log('data:', data);
+      if(searchMode === 'text'){
+        let ids = data.map((recipe: any) => recipe.id).join(',');
+        url = `${BASE_URL}/informationBulk?apiKey=${SPOONACULAR_API_KEY}&ids=${ids}&includeNutrition=true`;
+        response = await fetch(url);
+        data = await response.json();
+        console.log('newdata:', data);
+      }
 
       if (data && data.length > 0) {
         let processedRecipes: Recipe[] = [];
@@ -206,7 +216,7 @@ export default function RecipeFinder() {
           });
         } else if (searchMode === 'nutrients') {
           // Handle nutrient search results
-          processedRecipes = data.map((recipe: any) => {
+          processedRecipes = data.results?.map((recipe: any) => {
             const nutrition = extractNutritionData(recipe.nutrition, recipe.calories);
             
             return {
@@ -245,10 +255,10 @@ export default function RecipeFinder() {
             }
           }
         } else {
+          // print(data.results);
           // Handle text search results
-          processedRecipes = data.results?.map((recipe: any) => {
+          processedRecipes = data.map((recipe: any) => {
             const nutrition = extractNutritionData(recipe.nutrition, recipe.calories);
-            
             return {
               id: recipe.id,
               title: recipe.title,
@@ -596,14 +606,7 @@ export default function RecipeFinder() {
             </Text>
           </TouchableOpacity>
           
-          <TouchableOpacity
-            style={[styles.searchModeOption, searchMode === 'nutrients' && styles.activeSearchMode]}
-            onPress={() => setSearchMode('nutrients')}
-          >
-            <Text style={[styles.searchModeOptionText, searchMode === 'nutrients' && styles.activeSearchModeText]}>
-              Nutrient Search
-            </Text>
-          </TouchableOpacity>
+         
         </View>
       )}
     </View>
