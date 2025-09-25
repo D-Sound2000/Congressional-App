@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Pressable, Image } from 'react-native';
 import BloodSugarSnapshot from '@/components/BloodSugarSnapshot';
 import QuickActionButton from '@/components/QuickActionButton';
 import RecipeCard from '@/components/RecipeCard';
@@ -7,6 +7,7 @@ import ReminderCard from '@/components/ReminderCard';
 import FloatingEmergencyButton from '@/components/FloatingEmergencyButton';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 // Mock data for the blood sugar snapshot graph
 const bloodSugarData = [
@@ -73,6 +74,7 @@ export default function Index() {
   const [typedGreeting, setTypedGreeting] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   // Theme state
   const [theme, setTheme] = useState('light');
@@ -102,12 +104,17 @@ export default function Index() {
         if (user) {
           const { data, error } = await supabase
             .from('profiles')
-            .select('username')
+            .select('username, avatar_url')
             .eq('id', user.id)
             .single();
           
-          if (data && data.username) {
-            setUsername(data.username);
+          if (data) {
+            if (data.username) {
+              setUsername(data.username);
+            }
+            if (data.avatar_url) {
+              setUserAvatar(data.avatar_url);
+            }
           }
         }
       } catch (error) {
@@ -136,18 +143,35 @@ export default function Index() {
     <View style={[styles.container, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}> 
       {/* Combined App Title and Greeting Card with Theme Toggle */}
       <View style={[styles.greetingCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
-        <Text style={[styles.appTitle, { color: isDark ? '#90caf9' : '#1976d2' }]}>DiaBite</Text>
-        <Text style={[styles.greetingText, { color: isDark ? '#fff' : '#333' }]}>{typedGreeting}</Text>
-        <Pressable
-          style={[styles.themeToggleButton, { backgroundColor: isDark ? '#2d3a4d' : '#f0f0f0' }]}
-          onPress={() => setTheme(isDark ? 'light' : 'dark')}
-          accessibilityLabel="Toggle dark/light mode"
-        >
-          <Text style={[styles.themeToggleText, { color: isDark ? '#fff' : '#333' }]}>
-            {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
-          </Text>
-        </Pressable>
+        {/* Profile Bubble - Left Aligned */}
+        <View style={styles.profileContainer}>
+          <TouchableOpacity style={[styles.profileBubble, { backgroundColor: isDark ? '#2d3a4d' : '#e3f2fd' }]}>
+            {userAvatar ? (
+              <Image source={{ uri: userAvatar }} style={styles.profileImage} />
+            ) : (
+              <View style={[styles.profileFallback, { backgroundColor: isDark ? '#90caf9' : '#1976d2' }]}>
+                <Ionicons name="person" size={24} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+        
+        {/* App Title and Greeting - Center Aligned */}
+        <View style={styles.titleContainer}>
+          <Text style={[styles.appTitle, { color: isDark ? '#90caf9' : '#1976d2' }]}>DiaBite</Text>
+          <Text style={[styles.greetingText, { color: isDark ? '#fff' : '#333' }]}>{typedGreeting}</Text>
+          <Pressable
+            style={[styles.themeToggleButton, { backgroundColor: isDark ? '#2d3a4d' : '#f0f0f0' }]}
+            onPress={() => setTheme(isDark ? 'light' : 'dark')}
+            accessibilityLabel="Toggle dark/light mode"
+          >
+            <Text style={[styles.themeToggleText, { color: isDark ? '#fff' : '#333' }]}>
+              {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
+      
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Blood Sugar Snapshot Section */}
         <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
@@ -159,6 +183,7 @@ export default function Index() {
             data={bloodSugarData}
           />
         </View>
+        
         {/* Quick Action Buttons */}
         <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}> 
           <View style={styles.quickActionsRow}>
@@ -203,6 +228,7 @@ export default function Index() {
             </Text>
           </TouchableOpacity>
         </View>
+        
         {/* Today's Smart Picks (Recipe Cards) */}
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Today's Smart Picks</Text>
@@ -229,6 +255,7 @@ export default function Index() {
           contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
           style={{ marginBottom: 16 }}
         />
+        
         {/* Reminders Section */}
         <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
           <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Reminders</Text>
@@ -246,6 +273,7 @@ export default function Index() {
           </View>
         </View>
       </ScrollView>
+      
       {/* Floating Emergency Button */}
       <FloatingEmergencyButton onPress={() => alert('Emergency Info')} />
     </View>
@@ -269,6 +297,36 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
+  },
+  profileContainer: {
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  profileBubble: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  profileImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  profileFallback: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleContainer: {
+    alignItems: 'center',
+    flexDirection: 'column',
   },
   themeToggleButton: {
     marginTop: 12,
