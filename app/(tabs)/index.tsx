@@ -150,7 +150,7 @@ export default function Index() {
               <Image source={{ uri: userAvatar }} style={styles.profileImage} />
             ) : (
               <View style={[styles.profileFallback, { backgroundColor: isDark ? '#90caf9' : '#1976d2' }]}>
-                <Ionicons name="person" size={24} color="#fff" />
+                <Ionicons name="person" size={48} color="#fff" />
               </View>
             )}
           </TouchableOpacity>
@@ -301,28 +301,33 @@ const styles = StyleSheet.create({
   profileContainer: {
     alignSelf: 'flex-start',
     marginBottom: 16,
+    position: 'absolute',
+   
   },
   profileBubble: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 100,
+    height: 100,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    left: 20,
+    top: 20,
   },
   profileImage: {
-    width: 60,
-    height: 60,
+    width: 90,
+    height: 90,
     borderRadius: 30,
   },
   profileFallback: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 90,
+    height: 90,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
+    
   },
   titleContainer: {
     alignItems: 'center',
