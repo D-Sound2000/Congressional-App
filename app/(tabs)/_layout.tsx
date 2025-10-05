@@ -30,20 +30,29 @@ export default function TabLayout() {
         
       />
       <Tabs.Screen
-        name="about"
+        name="planner"
         options={{
-          // title: 'About',
+          title: 'Planner',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'information-circle' : 'information-circle-outline'} color={color} size={24}/>
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} color={color} size={24}/>
           ),
         }}
       />
-       <Tabs.Screen
-        name="login"
+      <Tabs.Screen
+        name="recipe-finder"
         options={{
-          title: 'login',
+          title: 'Recipes',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'information-circle' : 'information-circle-outline'} color={color} size={24}/>
+            <Ionicons name={focused ? 'search' : 'search-outline'} color={color} size={24}/>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={24}/>
           ),
         }}
       />
