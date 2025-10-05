@@ -14,6 +14,8 @@ import {
   Linking,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { updateMealInPlan, saveRecipe } from '@/lib/mealPlannerService';
+import { router } from 'expo-router';
 
 interface Recipe {
   id: number;
@@ -70,6 +72,8 @@ export default function RecipeFinder() {
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetail | null>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
+  const [showMealSelector, setShowMealSelector] = useState(false);
+  const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | null>(null);
   
   // Search mode states
   const [searchMode, setSearchMode] = useState<'text' | 'ingredients' | 'nutrients'>('text');
@@ -102,18 +106,44 @@ export default function RecipeFinder() {
   const loadFavorites = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      if (!user) {
+        console.log('No user found, cannot load favorites');
+        return;
+      }
+
+      console.log('Loading favorites for user:', user.id);
         const { data, error } = await supabase
           .from('favorite_recipes')
           .select('*')
           .eq('user_id', user.id);
         
-        if (data) {
-          setFavorites(data.map(item => ({ ...item.recipe_data, isFavorite: true })));
+      if (error) {
+        console.error('Error loading favorites:', error);
+        if (error.message.includes('relation "favorite_recipes" does not exist')) {
+          console.log('Favorites table does not exist yet. Please run the database setup script.');
+          setFavorites([]);
+          return;
         }
+        Alert.alert('Error', 'Failed to load favorites. Please try again.');
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        console.log('Loaded favorites:', data.length);
+        const favoriteRecipes = data.map(item => ({ ...item.recipe_data, isFavorite: true }));
+        setFavorites(favoriteRecipes);
+      } else {
+        console.log('No favorites found');
+        setFavorites([]);
       }
     } catch (error) {
       console.error('Error loading favorites:', error);
+      if (error instanceof Error && error.message.includes('relation "favorite_recipes" does not exist')) {
+        console.log('Favorites table does not exist yet. Please run the database setup script.');
+        setFavorites([]);
+        return;
+      }
+      Alert.alert('Error', 'Failed to load favorites. Please try again.');
     }
   };
 
@@ -456,35 +486,148 @@ export default function RecipeFinder() {
     }
   };
 
+  const addToMealPlanner = async (mealType: 'breakfast' | 'lunch' | 'dinner') => {
+    if (!selectedRecipe) return;
+
+    try {
+      // Convert the recipe detail to the format expected by the meal planner
+      const recipeData = {
+        name: selectedRecipe.title,
+        description: selectedRecipe.summary,
+        image_url: selectedRecipe.image,
+        calories: Math.round(selectedRecipe.nutrition.calories),
+        carbs: Math.round(selectedRecipe.nutrition.carbs),
+        protein: Math.round(selectedRecipe.nutrition.protein),
+        fat: Math.round(selectedRecipe.nutrition.fat),
+        prep_time: selectedRecipe.readyInMinutes,
+        cook_time: 0,
+        servings: selectedRecipe.servings,
+        ingredients: selectedRecipe.ingredients,
+        instructions: [selectedRecipe.instructions],
+        category: mealType,
+        difficulty: 'medium' as const,
+        dietary_restrictions: [],
+        tags: ['diabetes-friendly']
+      };
+
+      // First save the recipe to our database
+      const savedRecipe = await saveRecipe(recipeData);
+
+      // Get today's date for the meal plan
+      const today = new Date().toISOString().split('T')[0];
+
+      // Add to meal planner using the saved recipe ID
+      await updateMealInPlan(today, mealType, savedRecipe.id);
+
+      Alert.alert(
+        'Added to Meal Planner!',
+        `${selectedRecipe.title} has been added to your ${mealType} plan for today.`,
+        [
+          {
+            text: 'Stay Here',
+            style: 'cancel'
+          },
+          {
+            text: 'Go to Planner',
+            onPress: () => {
+              setShowRecipeModal(false);
+              setShowMealSelector(false);
+              router.push('/(tabs)/planner');
+            }
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error('Error adding recipe to meal planner:', error);
+      Alert.alert('Error', 'Failed to add recipe to meal planner. Please try again.');
+    }
+  };
+
+  const openMealSelector = () => {
+    setShowMealSelector(true);
+  };
+
   const toggleFavorite = async (recipe: Recipe) => {
+    console.log('=== TOGGLE FAVORITE CALLED ===');
+    console.log('Recipe ID:', recipe.id);
+    console.log('Current isFavorite:', recipe.isFavorite);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in to save favorites.');
+        return;
+      }
 
+      console.log('Toggling favorite for recipe:', recipe.id, 'Current isFavorite:', recipe.isFavorite);
+
+      // First, try to update the UI immediately for better responsiveness
+      const newIsFavorite = !recipe.isFavorite;
+      setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, isFavorite: newIsFavorite } : r));
+      
+      if (newIsFavorite) {
+        setFavorites(prev => [...prev, { ...recipe, isFavorite: true }]);
+      } else {
+        setFavorites(prev => prev.filter(fav => fav.id !== recipe.id));
+      }
+
+      // Then try to sync with database
+      try {
       if (recipe.isFavorite) {
-        await supabase
+          // Remove from favorites
+          const { error: deleteError } = await supabase
           .from('favorite_recipes')
           .delete()
           .eq('user_id', user.id)
           .eq('recipe_id', recipe.id);
         
-        setFavorites(prev => prev.filter(fav => fav.id !== recipe.id));
-        setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, isFavorite: false } : r));
+          if (deleteError) {
+            console.error('Error deleting favorite:', deleteError);
+            // Revert UI changes if database operation failed
+            setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, isFavorite: true } : r));
+            setFavorites(prev => [...prev, { ...recipe, isFavorite: true }]);
+            Alert.alert('Error', 'Failed to remove from favorites. Database table may not exist yet.');
+            return;
+          }
+          
+          console.log('Successfully removed from favorites');
       } else {
-        await supabase
+          // Add to favorites
+          const { error: insertError } = await supabase
           .from('favorite_recipes')
           .insert({
             user_id: user.id,
             recipe_id: recipe.id,
             recipe_data: recipe,
-          });
-        
+              created_at: new Date().toISOString(),
+            });
+          
+          if (insertError) {
+            console.error('Error inserting favorite:', insertError);
+            // Revert UI changes if database operation failed
+            setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, isFavorite: false } : r));
+            setFavorites(prev => prev.filter(fav => fav.id !== recipe.id));
+            Alert.alert('Error', 'Failed to add to favorites. Database table may not exist yet. Please run the database setup script.');
+            return;
+          }
+          
+          console.log('Successfully added to favorites');
+        }
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        // Revert UI changes if database operation failed
+        setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, isFavorite: recipe.isFavorite } : r));
+        if (recipe.isFavorite) {
         setFavorites(prev => [...prev, { ...recipe, isFavorite: true }]);
-        setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, isFavorite: true } : r));
+        } else {
+          setFavorites(prev => prev.filter(fav => fav.id !== recipe.id));
+        }
+        Alert.alert('Database Error', 'Failed to sync with database. The favorites table may not exist yet. Please run the database setup script in Supabase.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update favorites.');
       console.error('Error toggling favorite:', error);
+      Alert.alert('Error', 'Failed to update favorites. Please try again.');
     }
   };
 
@@ -521,7 +664,10 @@ export default function RecipeFinder() {
         <View style={styles.cardActions}>
           <TouchableOpacity
             style={[styles.favoriteButton, item.isFavorite && styles.favoriteButtonActive]}
-            onPress={() => toggleFavorite(item)}
+            onPress={() => {
+              console.log('Heart button pressed for recipe:', item.id);
+              toggleFavorite(item);
+            }}
           >
             <Text style={styles.favoriteButtonText}>
               {item.isFavorite ? '❤️' : '🤍'}
@@ -701,7 +847,10 @@ export default function RecipeFinder() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'favorites' && styles.activeTab]}
-          onPress={() => setActiveTab('favorites')}
+          onPress={() => {
+            setActiveTab('favorites');
+            loadFavorites(); // Refresh favorites when switching to favorites tab
+          }}
         >
           <Text style={[styles.tabText, activeTab === 'favorites' && styles.activeTabText]}>
             Favorites ({favorites.length})
@@ -724,6 +873,20 @@ export default function RecipeFinder() {
         </>
       )}
 
+      {activeTab === 'favorites' && (
+        <View style={styles.favoritesHeader}>
+          <Text style={styles.favoritesHeaderText}>
+            Your Favorite Recipes ({favorites.length})
+          </Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={loadFavorites}
+          >
+            <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {loading ? (
         <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
       ) : (
@@ -733,6 +896,16 @@ export default function RecipeFinder() {
           keyExtractor={(item) => item.id.toString()}
           style={styles.recipeList}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            activeTab === 'favorites' ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No favorite recipes yet</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  Search for recipes and tap the heart icon to add them to your favorites
+                </Text>
+              </View>
+            ) : null
+          }
         />
       )}
 
@@ -831,6 +1004,16 @@ export default function RecipeFinder() {
                   </Text>
                 </View>
 
+                {/* Add to Meal Planner Button */}
+                <View style={styles.addToPlannerSection}>
+                  <TouchableOpacity
+                    style={styles.addToPlannerButton}
+                    onPress={openMealSelector}
+                  >
+                    <Text style={styles.addToPlannerButtonText}>📅 Add to Meal Planner</Text>
+                  </TouchableOpacity>
+                </View>
+
                 {/* Ingredients */}
                 {selectedRecipe.ingredients.length > 0 && (
                   <View style={styles.section}>
@@ -862,6 +1045,58 @@ export default function RecipeFinder() {
                 )}
               </ScrollView>
             ) : null}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Meal Selector Modal */}
+      <Modal
+        visible={showMealSelector}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowMealSelector(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.mealSelectorContent}>
+            <View style={styles.mealSelectorHeader}>
+              <Text style={styles.mealSelectorTitle}>Add to Meal Planner</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowMealSelector(false)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.mealSelectorSubtitle}>
+              Choose which meal to add "{selectedRecipe?.title}" to:
+            </Text>
+
+            <View style={styles.mealOptionsContainer}>
+              <TouchableOpacity
+                style={styles.mealOption}
+                onPress={() => addToMealPlanner('breakfast')}
+              >
+                <Text style={styles.mealOptionIcon}>🌅</Text>
+                <Text style={styles.mealOptionText}>Breakfast</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.mealOption}
+                onPress={() => addToMealPlanner('lunch')}
+              >
+                <Text style={styles.mealOptionIcon}>🌞</Text>
+                <Text style={styles.mealOptionText}>Lunch</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.mealOption}
+                onPress={() => addToMealPlanner('dinner')}
+              >
+                <Text style={styles.mealOptionIcon}>🌙</Text>
+                <Text style={styles.mealOptionText}>Dinner</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -987,6 +1222,12 @@ const styles = StyleSheet.create({
   favoriteButton: {
     alignSelf: 'flex-end',
     padding: 8,
+    minWidth: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 20,
   },
   favoriteButtonActive: {
     // Already handled by emoji
@@ -1261,5 +1502,112 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#ccc',
     opacity: 0.7,
+  },
+  favoritesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingHorizontal: 5,
+  },
+  favoritesHeaderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  refreshButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  addToPlannerSection: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  addToPlannerButton: {
+    backgroundColor: '#4caf50',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  addToPlannerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  mealSelectorContent: {
+    backgroundColor: '#fff',
+    margin: 20,
+    borderRadius: 16,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  mealSelectorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  mealSelectorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  mealSelectorSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  mealOptionsContainer: {
+    gap: 16,
+  },
+  mealOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  mealOptionIcon: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  mealOptionText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
   },
 }); 

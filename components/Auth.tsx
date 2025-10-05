@@ -24,20 +24,46 @@ export default function Auth() {
   const [averageBloodSugar, setAverageBloodSugar] = useState('')
   const [medications, setMedications] = useState('')
   const [emergencyContact, setEmergencyContact] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
 
   async function signInWithEmail() {
     setLoading(true)
+    setErrorMessage('')
+    
+    if (!email || !password) {
+      setErrorMessage('Please fill in all fields')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     })
 
-    if (error) Alert.alert(error.message)
+    if (error) {
+      setErrorMessage(error.message)
+    }
     setLoading(false)
   }
 
   async function signUpWithEmail() {
     setLoading(true)
+    setErrorMessage('')
+    
+    if (!email || !password) {
+      setErrorMessage('Please fill in all fields')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long')
+      setLoading(false)
+      return
+    }
+
     const {
       data: { session },
       error,
@@ -46,12 +72,14 @@ export default function Auth() {
       password: password,
     })
 
-    if (error) Alert.alert(error.message)
-    if (!session) Alert.alert('Please check your inbox for email verification!')
-    setLoading(false)
-    if (!error && session) {
+    if (error) {
+      setErrorMessage(error.message)
+    } else if (!session) {
+      setErrorMessage('Please check your inbox for email verification!')
+    } else {
       setShowModal(true)
     }
+    setLoading(false)
   }
 
   async function saveDiabetesInfo() {
@@ -82,21 +110,39 @@ export default function Auth() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Welcome to DiaBite</Text>
+        <Text style={styles.subtitle}>Please sign in to continue</Text>
+      </View>
+
+      {errorMessage ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      ) : null}
+
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
-          onChangeText={(text: string) => setEmail(text)}
+          onChangeText={(text: string) => {
+            setEmail(text)
+            setErrorMessage('')
+          }}
           value={email}
           placeholder="email@address.com"
           autoCapitalize={'none'}
+          keyboardType="email-address"
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Text style={styles.label}>Password (More Than 4 Characters)</Text>
+        <Text style={styles.label}>Password</Text>
         <TextInput
           style={styles.input}
-          onChangeText={(text: string) => setPassword(text)}
+          onChangeText={(text: string) => {
+            setPassword(text)
+            setErrorMessage('')
+          }}
           value={password}
           secureTextEntry={true}
           placeholder="Password"
@@ -104,13 +150,21 @@ export default function Auth() {
         />
       </View>
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={() => signInWithEmail()}>
-          <Text style={styles.buttonText}>Sign in</Text>
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          disabled={loading} 
+          onPress={() => signInWithEmail()}
+        >
+          <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign in'}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.verticallySpaced}>
-        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} disabled={loading} onPress={() => signUpWithEmail()}>
-          <Text style={styles.buttonText}>Sign up</Text>
+        <TouchableOpacity 
+          style={[styles.button, styles.secondaryButton, loading && styles.buttonDisabled]} 
+          disabled={loading} 
+          onPress={() => signUpWithEmail()}
+        >
+          <Text style={styles.secondaryButtonText}>{loading ? 'Signing up...' : 'Sign up'}</Text>
         </TouchableOpacity>
       </View>
       <Modal
@@ -167,8 +221,37 @@ export default function Auth() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 40,
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    borderColor: '#f44336',
+    borderWidth: 1,
+    borderRadius: 8,
     padding: 12,
+    marginBottom: 20,
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    textAlign: 'center',
   },
   verticallySpaced: {
     paddingTop: 4,
@@ -198,11 +281,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
   buttonDisabled: {
     backgroundColor: '#ccc',
+    borderColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButtonText: {
+    color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
   },
