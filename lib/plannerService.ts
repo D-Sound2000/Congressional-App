@@ -253,3 +253,4 @@ export const getTypeIcon = (itemType: PlannerItem['item_type']): string => {
     default: return '📋';
   }
 };
+
