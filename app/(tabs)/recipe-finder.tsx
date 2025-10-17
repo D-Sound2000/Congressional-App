@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { updateMealInPlan, saveRecipe } from '@/lib/mealPlannerService';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 interface Recipe {
   id: number;
@@ -64,6 +64,10 @@ const COMMON_INGREDIENTS = [
 ];
 
 export default function RecipeFinder() {
+  // Get recipe ID from route params if navigating from home
+  const params = useLocalSearchParams();
+  const recipeIdFromParams = params.recipeId as string | undefined;
+  
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +106,18 @@ export default function RecipeFinder() {
   useEffect(() => {
     loadFavorites();
   }, []);
+
+  // Handle recipe opening from home page - had some timing issues initially
+  useEffect(() => {
+    if (recipeIdFromParams && !showRecipeModal) {
+      console.log('Auto-opening recipe ID from home page:', recipeIdFromParams);
+      // Small delay to ensure component is fully mounted - learned this the hard way
+      const timer = setTimeout(() => {
+        getRecipeDetails(parseInt(recipeIdFromParams));
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [recipeIdFromParams]);
 
   const loadFavorites = async () => {
     try {
@@ -156,6 +172,7 @@ export default function RecipeFinder() {
   };
 
   // Helper function to extract nutrition data from API response
+  // This was a pain to get working with all the different API response formats
   const extractNutritionData = (nutritionData: any, fallbackCalories?: number) => {
     const getNutrientAmount = (name: string) => 
       nutritionData?.nutrients?.find((n: any) => n.name === name)?.amount || 0;
@@ -170,6 +187,7 @@ export default function RecipeFinder() {
   };
 
   const searchRecipes = async () => {
+    // Basic validation - learned to add this after users kept hitting search with empty queries
     if (!searchQuery.trim() && searchMode === 'text') {
       Alert.alert('Please enter a search term');
       return;
@@ -186,12 +204,14 @@ export default function RecipeFinder() {
       
       switch (searchMode) {
         case 'text':
+          // Tried complexSearch first but autocomplete gives better results for partial matches
           // url = `${BASE_URL}/complexSearch?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(searchQuery)}&number=5`;
           url = `${BASE_URL}/autocomplete?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(searchQuery)}&number=5`;
           console.log('searchQuery:', encodeURIComponent(searchQuery));
           break;
           
         case 'ingredients':
+          // Join ingredients with commas - had to look up the API docs for this format
           const ingredientsString = selectedIngredients.join(',');
           url = `${BASE_URL}/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(ingredientsString)}&number=5&ranking=2&ignorePantry=true`;
           break;
@@ -304,6 +324,7 @@ export default function RecipeFinder() {
         }
         
         // Fetch nutrition widget data for all recipes to get accurate nutrition info
+        // This was a nightmare to get working - the API returns HTML that needs parsing
         processedRecipes = await Promise.all(
           processedRecipes.map(async (recipe) => {
             try {
@@ -311,7 +332,7 @@ export default function RecipeFinder() {
               const nutritionResponse = await fetch(nutritionWidgetUrl);
               const nutritionData = await nutritionResponse.json();
               
-              // Parse nutrition widget data to extract values
+              // Parse nutrition widget data to extract values - regex hell but it works
               const nutritionText = nutritionData.html || '';
               const caloriesMatch = nutritionText.match(/(\d+)\s*calories/i);
               const carbsMatch = nutritionText.match(/(\d+(?:\.\d+)?)\s*g\s*carbs/i);
@@ -403,11 +424,16 @@ export default function RecipeFinder() {
   };
 
   const getRecipeDetails = async (recipeId: number) => {
+    console.log('=== Fetching Recipe Details ===');
+    console.log('Recipe ID:', recipeId);
     setLoadingRecipe(true);
     try {
+      // Get basic recipe info first
       const url = `${BASE_URL}/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}`;
+      console.log('Fetching from URL:', url);
       const response = await fetch(url);
       const data = await response.json();
+      console.log('Received recipe data:', data);
 
       // Also fetch nutrition widget data for more accurate nutrition info
       let nutritionWidgetData = null;
@@ -445,28 +471,45 @@ export default function RecipeFinder() {
         };
       }
 
-      console.log('selectedRecipe', selectedRecipe);
-
       const nutrition = extractNutritionData(data.nutrition);
-      console.log('data.nutrition', data);
-      const nutritionFacts = nutritionValues.filter((nutrient: any)=> nutrient.id === data.id)
-      console.log('nutritionFacts', nutritionFacts);
+      const nutritionFacts = nutritionValues ? nutritionValues.filter((nutrient: any)=> nutrient.id === data.id) : [];
+      
+      // Use nutrition data from API or widget as fallback
+      let nutritionData = widgetNutrition;
+      
+      if (nutritionFacts && nutritionFacts.length > 0 && nutritionFacts[0].nutrition?.nutrients) {
+        // Use cached nutrition if available
+        nutritionData = {
+          calories: nutritionFacts[0].nutrition.nutrients[0]?.amount || widgetNutrition.calories,
+          carbs: nutritionFacts[0].nutrition.nutrients[3]?.amount || widgetNutrition.carbs,
+          protein: nutritionFacts[0].nutrition.nutrients[10]?.amount || widgetNutrition.protein,
+          fat: nutritionFacts[0].nutrition.nutrients[1]?.amount || widgetNutrition.fat,
+          sugar: nutritionFacts[0].nutrition.nutrients[5]?.amount || widgetNutrition.sugar,
+        };
+      } else if (data.nutrition?.nutrients) {
+        // Parse from recipe data if available
+        const nutrients = data.nutrition.nutrients;
+        nutritionData = {
+          calories: nutrients.find((n: any) => n.name === 'Calories')?.amount || widgetNutrition.calories,
+          carbs: nutrients.find((n: any) => n.name === 'Carbohydrates')?.amount || widgetNutrition.carbs,
+          protein: nutrients.find((n: any) => n.name === 'Protein')?.amount || widgetNutrition.protein,
+          fat: nutrients.find((n: any) => n.name === 'Fat')?.amount || widgetNutrition.fat,
+          sugar: nutrients.find((n: any) => n.name === 'Sugar')?.amount || widgetNutrition.sugar,
+        };
+      }
+      
+      // console.log('Final nutrition data:', nutritionData);
+      
       const recipeDetail: RecipeDetail = {
         id: data.id,
         title: data.title,
         image: data.image,
-        summary: data.summary.replace(/<[^>]*>/g, ''),
-        instructions: data.instructions.replace(/<[^>]*>/g, ''),
+        summary: data.summary?.replace(/<[^>]*>/g, '') || 'No description available',
+        instructions: data.instructions?.replace(/<[^>]*>/g, '') || 'No instructions available',
         ingredients: data.extendedIngredients?.map((ing: any) => ing.original) || [],
-        nutrition: {
-          calories: nutritionFacts[0].nutrition.nutrients[0].amount,
-          carbs:  nutritionFacts[0].nutrition.nutrients[3].amount,
-          protein:  nutritionFacts[0].nutrition.nutrients[10].amount,
-          fat:  nutritionFacts[0].nutrition.nutrients[1].amount,
-          sugar: nutritionFacts[0].nutrition.nutrients[5].amount,
-        },
-        readyInMinutes: data.readyInMinutes,
-        servings: data.servings,
+        nutrition: nutritionData,
+        readyInMinutes: data.readyInMinutes || 30,
+        servings: data.servings || 4,
         sourceUrl: data.sourceUrl,
       };
 
@@ -831,6 +874,8 @@ export default function RecipeFinder() {
     }
   };
 
+  // console.log('Recipe Finder Render - showRecipeModal:', showRecipeModal, 'selectedRecipe:', selectedRecipe?.title, 'recipeIdFromParams:', recipeIdFromParams);
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Recipe Finder</Text>
@@ -970,32 +1015,6 @@ export default function RecipeFinder() {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Nutrition Info */}
-                <View style={styles.nutritionSection}>
-                  <Text style={styles.sectionTitle}>Nutrition (per serving)</Text>
-                  <View style={styles.nutritionGrid}>
-                    <View style={styles.nutritionItem}>
-                      <Text style={styles.nutritionLabel}>Calories</Text>
-                      <Text style={styles.nutritionValue}>{selectedRecipe.nutrition.calories.toFixed(1)}</Text>
-                    </View>
-                    <View style={styles.nutritionItem}>
-                      <Text style={styles.nutritionLabel}>Carbs</Text>
-                      <Text style={styles.nutritionValue}>{selectedRecipe.nutrition.carbs.toFixed(1)}g</Text>
-                    </View>
-                    <View style={styles.nutritionItem}>
-                      <Text style={styles.nutritionLabel}>Protein</Text>
-                      <Text style={styles.nutritionValue}>{selectedRecipe.nutrition.protein.toFixed(1)}g</Text>
-                    </View>
-                    <View style={styles.nutritionItem}>
-                      <Text style={styles.nutritionLabel}>Fat</Text>
-                      <Text style={styles.nutritionValue}>{selectedRecipe.nutrition.fat.toFixed(1)}g</Text>
-                    </View>
-                    <View style={styles.nutritionItem}>
-                      <Text style={styles.nutritionLabel}>Sugar</Text>
-                      <Text style={styles.nutritionValue}>{selectedRecipe.nutrition.sugar.toFixed(1)}g</Text>
-                    </View>
-                  </View>
-                </View>
 
                 {/* Recipe Info */}
                 <View style={styles.recipeInfoSection}>
@@ -1004,15 +1023,15 @@ export default function RecipeFinder() {
                   </Text>
                 </View>
 
-                {/* Add to Meal Planner Button */}
-                <View style={styles.addToPlannerSection}>
+                {/* Add to Meal Planner Button - Commented out for now */}
+                {/* <View style={styles.addToPlannerSection}>
                   <TouchableOpacity
                     style={styles.addToPlannerButton}
                     onPress={openMealSelector}
                   >
                     <Text style={styles.addToPlannerButtonText}>📅 Add to Meal Planner</Text>
                   </TouchableOpacity>
-                </View>
+                </View> */}
 
                 {/* Ingredients */}
                 {selectedRecipe.ingredients.length > 0 && (
@@ -1049,8 +1068,8 @@ export default function RecipeFinder() {
         </View>
       </Modal>
 
-      {/* Meal Selector Modal */}
-      <Modal
+      {/* Meal Selector Modal - Commented out for now */}
+      {/* <Modal
         visible={showMealSelector}
         animationType="slide"
         transparent={true}
@@ -1099,7 +1118,7 @@ export default function RecipeFinder() {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </View>
   );
 }
@@ -1300,35 +1319,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#666',
   },
-  nutritionSection: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#333',
-  },
-  nutritionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  nutritionItem: {
-    width: '48%', // Two items per row
-    marginBottom: 10,
-  },
-  nutritionLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  nutritionValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007AFF',
   },
   recipeInfoSection: {
     padding: 15,

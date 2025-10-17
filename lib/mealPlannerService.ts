@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { getUserProfile } from './userProfileService';
 
-// Types for our meal planner data
+// Types for our meal planner data - this got pretty complex
 export interface Recipe {
   id: number;
   name: string;

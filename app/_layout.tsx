@@ -7,6 +7,7 @@ import DiabetesOnboarding from '../components/DiabetesOnboarding';
 import { Session } from '@supabase/supabase-js';
 import { shouldShowOnboarding, saveUserProfile } from '../lib/userProfileService';
 
+// Root layout with authentication and onboarding flow
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);

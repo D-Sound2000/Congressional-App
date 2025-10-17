@@ -14,6 +14,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { createPlannerItem, CreatePlannerItemData } from '@/lib/plannerService';
 
+// Modal for adding planner items - had to simplify this a lot
 interface AddItemModalProps {
   isDark: boolean;
   selectedDate: Date;
@@ -21,12 +22,11 @@ interface AddItemModalProps {
   onItemAdded: () => void;
 }
 
+// Item types for the planner - removed activity/exercise as requested
 const ITEM_TYPES = [
   { value: 'medication', label: 'Medication', icon: '💊' },
   { value: 'meal_time', label: 'Meal Time', icon: '🍽️' },
-  { value: 'activity', label: 'Activity', icon: '📝' },
   { value: 'reminder', label: 'Reminder', icon: '⏰' },
-  { value: 'exercise', label: 'Exercise', icon: '🏃' },
   { value: 'checkup', label: 'Checkup', icon: '🩺' },
 ];
 
@@ -63,7 +63,12 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
   const [foodSuggestions, setFoodSuggestions] = useState('');
 
   const handleSave = async () => {
-    if (!title.trim()) {
+    // Validate based on item type
+    if (itemType === 'medication' && (!medicationName.trim() || !dosage.trim())) {
+      Alert.alert('Error', 'Please enter medication name and dosage');
+      return;
+    }
+    if (itemType !== 'medication' && !title.trim()) {
       Alert.alert('Error', 'Please enter a title');
       return;
     }
@@ -110,7 +115,7 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
       <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>Medication Details</Text>
       
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Medication Name</Text>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Medication Name *</Text>
         <TextInput
           style={[styles.input, { 
             backgroundColor: isDark ? '#2d3a4d' : '#fff',
@@ -125,7 +130,7 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Dosage</Text>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Dosage *</Text>
         <TextInput
           style={[styles.input, { 
             backgroundColor: isDark ? '#2d3a4d' : '#fff',
@@ -138,6 +143,23 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
           onChangeText={setDosage}
         />
       </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Description (Optional)</Text>
+        <TextInput
+          style={[styles.textArea, { 
+            backgroundColor: isDark ? '#2d3a4d' : '#fff',
+            color: isDark ? '#fff' : '#333',
+            borderColor: isDark ? '#404040' : '#ddd'
+          }]}
+          placeholder="Add any additional details..."
+          placeholderTextColor={isDark ? '#999' : '#999'}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={2}
+        />
+      </View>
     </View>
   );
 
@@ -145,6 +167,21 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
     <View style={styles.section}>
       <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>Meal Details</Text>
       
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Title *</Text>
+        <TextInput
+          style={[styles.input, { 
+            backgroundColor: isDark ? '#2d3a4d' : '#fff',
+            color: isDark ? '#fff' : '#333',
+            borderColor: isDark ? '#404040' : '#ddd'
+          }]}
+          placeholder="e.g., Healthy Lunch"
+          placeholderTextColor={isDark ? '#999' : '#999'}
+          value={title}
+          onChangeText={setTitle}
+        />
+      </View>
+
       <View style={styles.inputGroup}>
         <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Meal Type</Text>
         <View style={[styles.pickerContainer, { backgroundColor: isDark ? '#2d3a4d' : '#fff' }]}>
@@ -175,6 +212,99 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
           onChangeText={setFoodSuggestions}
           multiline
           numberOfLines={3}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Description (Optional)</Text>
+        <TextInput
+          style={[styles.textArea, { 
+            backgroundColor: isDark ? '#2d3a4d' : '#fff',
+            color: isDark ? '#fff' : '#333',
+            borderColor: isDark ? '#404040' : '#ddd'
+          }]}
+          placeholder="Add any additional details..."
+          placeholderTextColor={isDark ? '#999' : '#999'}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={2}
+        />
+      </View>
+    </View>
+  );
+
+  const renderReminderFields = () => (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>Reminder Details</Text>
+      
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Title *</Text>
+        <TextInput
+          style={[styles.input, { 
+            backgroundColor: isDark ? '#2d3a4d' : '#fff',
+            color: isDark ? '#fff' : '#333',
+            borderColor: isDark ? '#404040' : '#ddd'
+          }]}
+          placeholder="e.g., Take medication, Check glucose"
+          placeholderTextColor={isDark ? '#999' : '#999'}
+          value={title}
+          onChangeText={setTitle}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Description (Optional)</Text>
+        <TextInput
+          style={[styles.textArea, { 
+            backgroundColor: isDark ? '#2d3a4d' : '#fff',
+            color: isDark ? '#fff' : '#333',
+            borderColor: isDark ? '#404040' : '#ddd'
+          }]}
+          placeholder="Add any additional details..."
+          placeholderTextColor={isDark ? '#999' : '#999'}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={2}
+        />
+      </View>
+    </View>
+  );
+
+  const renderCheckupFields = () => (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>Checkup Details</Text>
+      
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Title *</Text>
+        <TextInput
+          style={[styles.input, { 
+            backgroundColor: isDark ? '#2d3a4d' : '#fff',
+            color: isDark ? '#fff' : '#333',
+            borderColor: isDark ? '#404040' : '#ddd'
+          }]}
+          placeholder="e.g., Doctor Appointment, Blood Test"
+          placeholderTextColor={isDark ? '#999' : '#999'}
+          value={title}
+          onChangeText={setTitle}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Description (Optional)</Text>
+        <TextInput
+          style={[styles.textArea, { 
+            backgroundColor: isDark ? '#2d3a4d' : '#fff',
+            color: isDark ? '#fff' : '#333',
+            borderColor: isDark ? '#404040' : '#ddd'
+          }]}
+          placeholder="Add any additional details..."
+          placeholderTextColor={isDark ? '#999' : '#999'}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={2}
         />
       </View>
     </View>
@@ -229,53 +359,8 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
         {/* Type-specific fields */}
         {itemType === 'medication' && renderMedicationFields()}
         {itemType === 'meal_time' && renderMealTimeFields()}
-
-        {/* Basic Information */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>Basic Information</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>
-              Title {itemType === 'medication' ? '(Auto-generated from medication name)' : '*'}
-            </Text>
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: isDark ? '#2d3a4d' : '#fff',
-                color: isDark ? '#fff' : '#333',
-                borderColor: isDark ? '#404040' : '#ddd',
-                opacity: itemType === 'medication' ? 0.6 : 1
-              }]}
-              placeholder={
-                itemType === 'medication' ? 'Auto-generated' :
-                itemType === 'meal_time' ? 'e.g., Healthy Lunch' :
-                itemType === 'exercise' ? 'e.g., Morning Walk' :
-                itemType === 'checkup' ? 'e.g., Doctor Appointment' :
-                'Enter title'
-              }
-              placeholderTextColor={isDark ? '#999' : '#999'}
-              value={title}
-              onChangeText={setTitle}
-              editable={itemType !== 'medication'}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Description (Optional)</Text>
-            <TextInput
-              style={[styles.textArea, { 
-                backgroundColor: isDark ? '#2d3a4d' : '#fff',
-                color: isDark ? '#fff' : '#333',
-                borderColor: isDark ? '#404040' : '#ddd'
-              }]}
-              placeholder="Add any additional details..."
-              placeholderTextColor={isDark ? '#999' : '#999'}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={2}
-            />
-          </View>
-        </View>
+        {itemType === 'reminder' && renderReminderFields()}
+        {itemType === 'checkup' && renderCheckupFields()}
 
         {/* Scheduling */}
         <View style={styles.section}>

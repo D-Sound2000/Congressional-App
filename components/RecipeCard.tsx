@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-// Props for the recipe card
+// Props for the recipe card - removed favorite functionality as requested
 interface RecipeCardProps {
   image: any;
   title: string;
@@ -10,6 +11,9 @@ interface RecipeCardProps {
   badge: { label: string; color: string };
   onPress?: () => void;
   dark?: boolean;
+  isFavorite?: boolean;
+  onFavoritePress?: () => void;
+  showFavoriteButton?: boolean;
 }
 
 /**
@@ -24,11 +28,29 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   badge,
   onPress,
   dark = false,
+  isFavorite = false,
+  onFavoritePress,
+  showFavoriteButton = false,
 }) => (
   <Pressable 
     style={[styles.card, dark && styles.cardDark]} 
     onPress={onPress}
   >
+    {showFavoriteButton && onFavoritePress && (
+      <TouchableOpacity 
+        style={styles.favoriteButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          onFavoritePress();
+        }}
+      >
+        <Ionicons 
+          name={isFavorite ? "heart" : "heart-outline"} 
+          size={24} 
+          color={isFavorite ? "#f44336" : (dark ? "#fff" : "#666")}
+        />
+      </TouchableOpacity>
+    )}
     <Image 
       source={image} 
       style={styles.image}
@@ -63,6 +85,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     alignItems: 'center',
+    position: 'relative',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    padding: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   cardDark: {
     backgroundColor: '#32405a',

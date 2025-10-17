@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Pressable, Alert } from 'react-native';
 import BloodSugarSnapshot from '@/components/BloodSugarSnapshot';
 import BloodSugarLogger from '@/components/BloodSugarLogger';
 import GlucoseInsights from '@/components/GlucoseInsights';
@@ -14,8 +14,9 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { getGlucoseLogs, GlucoseLog } from '@/lib/mealPlannerService';
 import { getPlannerItems, formatTime, getTypeIcon } from '@/lib/plannerService';
+import { getSmartRecommendations, SmartRecipe } from '@/lib/smartRecommendationsService';
 
-// Mock data for the blood sugar snapshot graph
+// Mock data for the blood sugar snapshot graph - placeholder until we get real data
 const bloodSugarData = [
   { value: 110, color: '#388e3c' }, // healthy
   { value: 98, color: '#388e3c' }, // healthy
@@ -26,38 +27,7 @@ const bloodSugarData = [
   { value: 108, color: '#388e3c' }, // healthy
 ];
 
-// Placeholder image for recipes
-const placeholderImage = { uri: 'https://placehold.co/120x80/png' };
-const recipes = [
-  {
-    image: placeholderImage,
-    title: 'Avocado Toast',
-    time: '10 min',
-    carbs: '15g carbs',
-    badge: { label: 'Low-Carb', color: '#43a047' },
-  },
-  {
-    image: placeholderImage,
-    title: 'Grilled Chicken Salad',
-    time: '20 min',
-    carbs: '18g carbs',
-    badge: { label: 'Low-Carb', color: '#43a047' },
-  },
-  {
-    image: placeholderImage,
-    title: 'Berry Yogurt Bowl',
-    time: '8 min',
-    carbs: '22g carbs',
-    badge: { label: 'Medium', color: '#fbc02d' },
-  },
-  {
-    image: placeholderImage,
-    title: 'Quinoa Veggie Mix',
-    time: '15 min',
-    carbs: '30g carbs',
-    badge: { label: 'High', color: '#e65100' },
-  },
-];
+// Smart recipe recommendations will be loaded dynamically
 
 // Mock data for reminders (fallback)
 const fallbackReminders = [
@@ -92,10 +62,11 @@ export default function Index() {
   const [loadingReminders, setLoadingReminders] = useState(false);
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
-
-  // Theme state
-  const [theme, setTheme] = useState('light');
-  const isDark = theme === 'dark';
+  
+  // State for smart recipe recommendations - this took forever to get working
+  const [smartRecipes, setSmartRecipes] = useState<SmartRecipe[]>([]);
+  const [loadingRecipes, setLoadingRecipes] = useState(false);
+  const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
 
   // Blood sugar logging state
   const [showBloodSugarLogger, setShowBloodSugarLogger] = useState(false);
@@ -106,20 +77,20 @@ export default function Index() {
   const [showEmergency, setShowEmergency] = useState(false);
   const [showEducation, setShowEducation] = useState(false);
 
-  // Colors based on theme
+  // Fixed light theme colors
   const colors = {
-    background: isDark ? '#181a20' : '#f6f8fa',
-    card: isDark ? '#232b3a' : '#fff',
-    cardBorder: isDark ? '#353945' : '#e0e0e0',
-    text: isDark ? '#f6f8fa' : '#222',
-    title: isDark ? '#90caf9' : '#1976d2',
-    greeting: isDark ? '#fff' : '#333',
-    sectionTitle: isDark ? '#fff' : '#222',
-    seeMore: isDark ? '#90caf9' : '#1976d2',
-    shadow: isDark ? 'rgba(0,0,0,0.7)' : '#000',
-    quickAction: isDark ? '#2d3a4d' : '#e3f2fd',
-    quickAction2: isDark ? '#2d3a4d' : '#fce4ec',
-    quickAction3: isDark ? '#2d3a4d' : '#e8f5e9',
+    background: '#f6f8fa',
+    card: '#fff',
+    cardBorder: '#e0e0e0',
+    text: '#222',
+    title: '#1976d2',
+    greeting: '#333',
+    sectionTitle: '#222',
+    seeMore: '#1976d2',
+    shadow: '#000',
+    quickAction: '#e3f2fd',
+    quickAction2: '#fce4ec',
+    quickAction3: '#e8f5e9',
   };
 
   // Fetch user profile and glucose data
@@ -174,6 +145,12 @@ export default function Index() {
             // Fallback to mock data on error
             setPlannerReminders(fallbackReminders);
           }
+          
+          // Load smart recipe recommendations (3 recipes)
+          loadSmartRecipes();
+          
+          // Load favorite recipe IDs
+          loadFavorites();
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -184,6 +161,158 @@ export default function Index() {
 
     fetchUserData();
   }, []);
+
+  // Load smart recipe recommendations - this was tricky to get personalized
+  const loadSmartRecipes = async () => {
+    try {
+      setLoadingRecipes(true);
+      const recommendations = await getSmartRecommendations(3); // Get 3 new recipes each time
+      setSmartRecipes(recommendations);
+    } catch (recipeError) {
+      console.error('Error loading smart recommendations:', recipeError);
+      // Will use fallback in the service - API can be flaky sometimes
+    } finally {
+      setLoadingRecipes(false);
+    }
+  };
+
+  // Load favorite recipe IDs
+  const loadFavorites = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user found when loading favorites');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('favorite_recipes')
+        .select('recipe_id, recipe_data')
+        .eq('user_id', user.id);
+      
+      console.log('Loading favorites - data:', data, 'error:', error);
+      
+      if (error) {
+        console.error('Error loading favorites from DB:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        // Get IDs from both recipe_id field and recipe_data
+        const ids = data.map(item => item.recipe_id || item.recipe_data?.id).filter(id => id != null);
+        console.log('Loaded favorite IDs:', ids);
+        setFavoriteRecipeIds(ids);
+      } else {
+        console.log('No favorites found');
+        setFavoriteRecipeIds([]);
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+
+  // Handle adding/removing from favorites
+  const toggleFavorite = async (recipe: SmartRecipe) => {
+    try {
+      console.log('=== Toggle Favorite Clicked ===');
+      console.log('Recipe ID:', recipe.id);
+      console.log('Recipe Title:', recipe.title);
+      console.log('Current favoriteRecipeIds:', favoriteRecipeIds);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user found');
+        Alert.alert('Sign In Required', 'Please sign in to save favorites');
+        return;
+      }
+      
+      console.log('User ID:', user.id);
+
+      const isFavorite = favoriteRecipeIds.includes(recipe.id);
+      console.log('Is currently favorited:', isFavorite);
+
+      if (isFavorite) {
+        // Remove from favorites
+        console.log('Removing from favorites...');
+        
+        // Update UI immediately
+        const newIds = favoriteRecipeIds.filter(id => id !== recipe.id);
+        console.log('New favorite IDs after removal:', newIds);
+        setFavoriteRecipeIds(newIds);
+        
+        const { error } = await supabase
+          .from('favorite_recipes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('recipe_id', recipe.id);
+
+        if (error) {
+          console.error('Database error removing favorite:', error);
+          // Revert on error
+          setFavoriteRecipeIds(prev => [...prev, recipe.id]);
+          Alert.alert('Error', 'Failed to remove favorite: ' + error.message);
+        } else {
+          console.log('✅ Successfully removed from favorites in database');
+        }
+      } else {
+        // Add to favorites
+        console.log('Adding to favorites...');
+        
+        // Update UI immediately
+        const newIds = [...favoriteRecipeIds, recipe.id];
+        console.log('New favorite IDs after adding:', newIds);
+        setFavoriteRecipeIds(newIds);
+        
+        const recipeData = {
+          user_id: user.id,
+          recipe_id: recipe.id,
+          recipe_data: {
+            id: recipe.id,
+            title: recipe.title,
+            image: recipe.image,
+            readyInMinutes: recipe.readyInMinutes,
+            sugar: recipe.sugar,
+            calories: recipe.calories,
+            carbs: parseFloat(recipe.carbs.replace('g carbs', '') || '0'),
+            protein: recipe.protein,
+            fat: recipe.protein, // Using protein as placeholder for fat
+            servings: 4,
+          },
+        };
+        
+        console.log('Inserting recipe data:', recipeData);
+        
+        const { error, data } = await supabase
+          .from('favorite_recipes')
+          .insert(recipeData)
+          .select();
+
+        console.log('Insert result - error:', error, 'data:', data);
+
+        if (error) {
+          console.error('Database error adding favorite:', error);
+          // Revert on error
+          setFavoriteRecipeIds(prev => prev.filter(id => id !== recipe.id));
+          
+          // Check if it's a duplicate error
+          if (error.message.includes('duplicate') || error.code === '23505') {
+            console.log('Recipe already in favorites (duplicate)');
+            // Keep it in the UI since it's actually there
+            setFavoriteRecipeIds(prev => [...prev, recipe.id]);
+          } else {
+            Alert.alert('Error', 'Failed to save favorite: ' + error.message);
+          }
+        } else {
+          console.log('✅ Successfully added to favorites in database');
+        }
+      }
+      
+      console.log('=== Toggle Favorite Complete ===');
+    } catch (error: any) {
+      console.error('Exception in toggleFavorite:', error);
+      Alert.alert('Error', 'Failed to save favorite: ' + (error?.message || 'Unknown error'));
+    }
+  };
 
   // Load glucose data when logger is closed
   const handleGlucoseLogged = async (log: GlucoseLog) => {
@@ -209,23 +338,14 @@ export default function Index() {
   }, [username]);
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}> 
-      {/* Combined App Title and Greeting Card with Theme Toggle */}
-      <View style={[styles.greetingCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
-        <Text style={[styles.appTitle, { color: isDark ? '#90caf9' : '#1976d2' }]}>DiaBite</Text>
-        <Text style={[styles.greetingText, { color: isDark ? '#fff' : '#333' }]}>{typedGreeting}</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+      {/* Combined App Title and Greeting Card */}
+      <View style={[styles.greetingCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
+        <Text style={[styles.appTitle, { color: colors.title }]}>DiaBite</Text>
+        <Text style={[styles.greetingText, { color: colors.greeting }]}>{typedGreeting}</Text>
         <View style={styles.buttonRow}>
           <Pressable
-            style={[styles.themeToggleButton, { backgroundColor: isDark ? '#2d3a4d' : '#f0f0f0' }]}
-            onPress={() => setTheme(isDark ? 'light' : 'dark')}
-            accessibilityLabel="Toggle dark/light mode"
-          >
-            <Text style={[styles.themeToggleText, { color: isDark ? '#fff' : '#333' }]}>
-              {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.logoutButton, { backgroundColor: isDark ? '#d32f2f' : '#f44336' }]}
+            style={[styles.logoutButton, { backgroundColor: '#f44336' }]}
             onPress={() => supabase.auth.signOut()}
             accessibilityLabel="Sign out"
           >
@@ -237,8 +357,8 @@ export default function Index() {
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Blood Sugar Snapshot Section */}
-        <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Blood Sugar Snapshot</Text>
+        <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
+          <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Blood Sugar Snapshot</Text>
           <BloodSugarSnapshot
             glucose={latestGlucose?.glucose_value || 110}
             time={latestGlucose ? new Date(latestGlucose.measurement_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "8:00 AM"}
@@ -248,35 +368,27 @@ export default function Index() {
         </View>
 
         {/* Glucose Insights */}
-        <GlucoseInsights isDark={isDark} />
+        <GlucoseInsights isDark={false} />
 
         {/* Medication Reminders */}
-        <MedicationReminder isDark={isDark} />
+        <MedicationReminder isDark={false} />
         {/* Quick Action Buttons */}
-        <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}> 
+        <View style={[styles.sectionCard, { backgroundColor: colors.card }]}> 
           <View style={styles.quickActionsRow}>
             <QuickActionButton
               icon="add-circle-outline"
               label="Log Sugar"
-              backgroundColor={isDark ? '#2d3a4d' : '#e3f2fd'}
-              textColor={isDark ? '#fff' : '#333'}
+              backgroundColor={colors.quickAction}
+              textColor={colors.text}
               onPress={() => setShowBloodSugarLogger(true)}
               style={styles.quickActionBtn}
             />
             <QuickActionButton
               icon="calendar-outline"
               label="Planner"
-              backgroundColor={isDark ? '#2d3a4d' : '#fce4ec'}
-              textColor={isDark ? '#fff' : '#333'}
+              backgroundColor={colors.quickAction2}
+              textColor={colors.text}
               onPress={() => router.push('/(tabs)/planner')}
-              style={styles.quickActionBtn}
-            />
-            <QuickActionButton
-              icon="camera-outline"
-              label="Scan Food"
-              backgroundColor={isDark ? '#2d3a4d' : '#e8f5e9'}
-              textColor={isDark ? '#fff' : '#333'}
-              onPress={() => alert('Scan Food')}
               style={styles.quickActionBtn}
             />
           </View>
@@ -326,41 +438,74 @@ export default function Index() {
         </View>
         {/* Today's Smart Picks (Recipe Cards) */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Today's Smart Picks</Text>
-          <TouchableOpacity onPress={() => alert('See More Recipes')}>
-            <Text style={[styles.seeMore, { color: isDark ? '#90caf9' : '#1976d2' }]}>➡️ See More Recipes</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>
+              Today's Smart Picks
+            </Text>
+            <TouchableOpacity 
+              onPress={loadSmartRecipes}
+              disabled={loadingRecipes}
+              style={{ padding: 4 }}
+            >
+              <Text style={{ fontSize: 20 }}>{loadingRecipes ? '🔄' : '🔃'}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/recipe-finder')}>
+            <Text style={[styles.seeMore, { color: colors.seeMore }]}>➡️ See More</Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          data={recipes}
-          keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item }) => (
-            <RecipeCard
-              image={item.image}
-              title={item.title}
-              time={item.time}
-              carbs={item.carbs}
-              badge={item.badge}
-              onPress={() => alert(item.title)}
-              dark={isDark}
-            />
-          )}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
-          style={{ marginBottom: 16 }}
-        />
+        {loadingRecipes ? (
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+            <Text style={[styles.loadingText, { color: '#666' }]}>
+              Loading personalized recommendations...
+            </Text>
+          </View>
+        ) : smartRecipes.length > 0 ? (
+          <FlatList
+            data={smartRecipes}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <RecipeCard
+                image={{ uri: item.image }}
+                title={item.title}
+                time={item.time}
+                carbs={item.carbs}
+                badge={item.badge}
+                onPress={() => {
+                  // Navigate to recipe finder with this recipe ID
+                  console.log('Opening recipe:', item.title, 'ID:', item.id);
+                  router.push({
+                    pathname: '/(tabs)/recipe-finder',
+                    params: { recipeId: item.id.toString() }
+                  });
+                }}
+                dark={false}
+                showFavoriteButton={false}
+              />
+            )}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingLeft: 20, paddingRight: 8 }}
+            style={{ marginBottom: 16 }}
+          />
+        ) : (
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, marginVertical: 20 }}>
+            <Text style={[styles.emptyText, { color: '#666' }]}>
+              No recommendations available. Try the Recipe Finder!
+            </Text>
+          </View>
+        )}
         {/* Reminders Section */}
-        <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff', borderColor: isDark ? '#353945' : '#e0e0e0' }]}> 
+        <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Today's Reminders</Text>
+            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Today's Reminders</Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/planner')}>
-              <Text style={[styles.seeMore, { color: isDark ? '#90caf9' : '#1976d2' }]}>📋 Planner</Text>
+              <Text style={[styles.seeMore, { color: colors.seeMore }]}>📋 Planner</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.remindersList}>
             {loadingReminders ? (
-              <Text style={[styles.loadingText, { color: isDark ? '#ccc' : '#666' }]}>Loading reminders...</Text>
+              <Text style={[styles.loadingText, { color: '#666' }]}>Loading reminders...</Text>
             ) : plannerReminders.length > 0 ? (
               plannerReminders.map((reminder, idx) => (
                 <ReminderCard
@@ -369,11 +514,11 @@ export default function Index() {
                   text={reminder.text}
                   time={reminder.time}
                   onPress={() => router.push('/(tabs)/planner')}
-                  dark={isDark}
+                  dark={false}
                 />
               ))
             ) : (
-              <Text style={[styles.emptyText, { color: isDark ? '#ccc' : '#666' }]}>
+              <Text style={[styles.emptyText, { color: '#666' }]}>
                 No reminders for today. Add items in the planner!
               </Text>
             )}
@@ -388,14 +533,14 @@ export default function Index() {
         visible={showBloodSugarLogger}
         onClose={() => setShowBloodSugarLogger(false)}
         onLogSuccess={handleGlucoseLogged}
-        isDark={isDark}
+        isDark={false}
       />
       
       {/* Diabetes Emergency Modal */}
       {showEmergency && (
         <View style={styles.modalOverlay}>
           <DiabetesEmergency 
-            isDark={isDark}
+            isDark={false}
           />
           <TouchableOpacity
             style={styles.closeModalButton}
@@ -410,7 +555,7 @@ export default function Index() {
       {showEducation && (
         <View style={styles.modalOverlay}>
           <DiabetesEducation 
-            isDark={isDark}
+            isDark={false}
           />
           <TouchableOpacity
             style={styles.closeModalButton}

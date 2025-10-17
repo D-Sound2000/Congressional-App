@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 
+// Planner item types - removed activity/exercise as requested
 export interface PlannerItem {
   id: number;
   user_id: string;
@@ -253,4 +254,5 @@ export const getTypeIcon = (itemType: PlannerItem['item_type']): string => {
     default: return '📋';
   }
 };
+
 
