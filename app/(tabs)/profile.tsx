@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  // Removed dark mode - using light theme only
   const [showEditModal, setShowEditModal] = useState(false);
   const [recentGlucose, setRecentGlucose] = useState<GlucoseLog[]>([]);
   
@@ -163,10 +163,10 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}>
+      <View style={[styles.container, { backgroundColor: '#f6f8fa' }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#333' }]}>
+          <Text style={[styles.loadingText, { color: '#333' }]}>
             Loading profile...
           </Text>
         </View>
@@ -175,11 +175,11 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}>
+    <View style={[styles.container, { backgroundColor: '#f6f8fa' }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
+      <View style={[styles.header, { backgroundColor: '#fff' }]}>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#333' }]}>
+          <Text style={[styles.headerTitle, { color: '#333' }]}>
             Profile
           </Text>
           <View style={styles.headerActions}>
@@ -187,13 +187,7 @@ export default function ProfileScreen() {
               style={styles.editButton}
               onPress={() => setShowEditModal(true)}
             >
-              <Ionicons name="create-outline" size={20} color={isDark ? '#fff' : '#333'} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.themeToggle}
-              onPress={() => setIsDark(!isDark)}
-            >
-              <Text style={styles.themeIcon}>{isDark ? '☀️' : '🌙'}</Text>
+              <Ionicons name="create-outline" size={20} color={'#333'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -201,20 +195,20 @@ export default function ProfileScreen() {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
+        <View style={[styles.profileCard, { backgroundColor: '#fff' }]}>
           <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: isDark ? '#2d3a4d' : '#f0f0f0' }]}>
+            <View style={[styles.avatar, { backgroundColor: '#f0f0f0' }]}>
               {profile?.avatar_url ? (
                 <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
               ) : (
-                <Ionicons name="person" size={40} color={isDark ? '#fff' : '#666'} />
+                <Ionicons name="person" size={40} color={'#666'} />
               )}
             </View>
             <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: isDark ? '#fff' : '#333' }]}>
+              <Text style={[styles.profileName, { color: '#333' }]}>
                 {profile?.username || 'User'}
               </Text>
-              <Text style={[styles.profileEmail, { color: isDark ? '#ccc' : '#666' }]}>
+              <Text style={[styles.profileEmail, { color: '#666' }]}>
                 {session?.user?.email}
               </Text>
               {profile?.diabetes_type && (
@@ -222,7 +216,7 @@ export default function ProfileScreen() {
                   <Text style={styles.diabetesTypeIcon}>
                     {getDiabetesTypeIcon(profile.diabetes_type)}
                   </Text>
-                  <Text style={[styles.diabetesTypeText, { color: isDark ? '#fff' : '#333' }]}>
+                  <Text style={[styles.diabetesTypeText, { color: '#333' }]}>
                     {profile.diabetes_type}
                   </Text>
                 </View>
@@ -232,8 +226,8 @@ export default function ProfileScreen() {
         </View>
 
         {/* Health Overview */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>
+        <View style={[styles.section, { backgroundColor: '#fff' }]}>
+          <Text style={[styles.sectionTitle, { color: '#333' }]}>
             Health Overview
           </Text>
           
@@ -242,25 +236,25 @@ export default function ProfileScreen() {
               <Text style={[styles.statValue, { color: getGlucoseColor(recentGlucose[0]?.glucose_value || 100) }]}>
                 {recentGlucose[0]?.glucose_value || '--'}
               </Text>
-              <Text style={[styles.statLabel, { color: isDark ? '#ccc' : '#666' }]}>
+              <Text style={[styles.statLabel, { color: '#666' }]}>
                 Latest Glucose (mg/dL)
               </Text>
             </View>
             
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: isDark ? '#fff' : '#333' }]}>
+              <Text style={[styles.statValue, { color: '#333' }]}>
                 {profile?.medications?.length || 0}
               </Text>
-              <Text style={[styles.statLabel, { color: isDark ? '#ccc' : '#666' }]}>
+              <Text style={[styles.statLabel, { color: '#666' }]}>
                 Medications
               </Text>
             </View>
             
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: isDark ? '#fff' : '#333' }]}>
+              <Text style={[styles.statValue, { color: '#333' }]}>
                 {profile?.insulin_dependent ? '💉' : '🚫'}
               </Text>
-              <Text style={[styles.statLabel, { color: isDark ? '#ccc' : '#666' }]}>
+              <Text style={[styles.statLabel, { color: '#666' }]}>
                 {profile?.insulin_dependent ? 'Insulin Dependent' : 'No Insulin'}
               </Text>
             </View>
@@ -268,8 +262,8 @@ export default function ProfileScreen() {
         </View>
 
         {/* Medical Information */}
-        <View style={[styles.section, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>
+        <View style={[styles.section, { backgroundColor: '#fff' }]}>
+          <Text style={[styles.sectionTitle, { color: '#333' }]}>
             Medical Information
           </Text>
           
@@ -277,10 +271,10 @@ export default function ProfileScreen() {
             <View style={styles.infoItem}>
               <Ionicons name="medical" size={20} color="#007AFF" />
               <View style={styles.infoContent}>
-                <Text style={[styles.infoLabel, { color: isDark ? '#ccc' : '#666' }]}>
+                <Text style={[styles.infoLabel, { color: '#666' }]}>
                   Diabetes Type
                 </Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#333' }]}>
+                <Text style={[styles.infoValue, { color: '#333' }]}>
                   {profile?.diabetes_type || 'Not specified'}
                 </Text>
               </View>
@@ -289,10 +283,10 @@ export default function ProfileScreen() {
             <View style={styles.infoItem}>
               <Ionicons name="fitness" size={20} color="#34C759" />
               <View style={styles.infoContent}>
-                <Text style={[styles.infoLabel, { color: isDark ? '#ccc' : '#666' }]}>
+                <Text style={[styles.infoLabel, { color: '#666' }]}>
                   Profile Created
                 </Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#333' }]}>
+                <Text style={[styles.infoValue, { color: '#333' }]}>
                   {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Recently'}
                 </Text>
               </View>
@@ -301,10 +295,10 @@ export default function ProfileScreen() {
             <View style={styles.infoItem}>
               <Ionicons name="medical" size={20} color="#FF9500" />
               <View style={styles.infoContent}>
-                <Text style={[styles.infoLabel, { color: isDark ? '#ccc' : '#666' }]}>
+                <Text style={[styles.infoLabel, { color: '#666' }]}>
                   Medications
                 </Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#333' }]}>
+                <Text style={[styles.infoValue, { color: '#333' }]}>
                   {profile?.medications?.length ? profile.medications.join(', ') : 'None listed'}
                 </Text>
               </View>
@@ -313,10 +307,10 @@ export default function ProfileScreen() {
             <View style={styles.infoItem}>
               <Ionicons name="call" size={20} color="#FF3B30" />
               <View style={styles.infoContent}>
-                <Text style={[styles.infoLabel, { color: isDark ? '#ccc' : '#666' }]}>
+                <Text style={[styles.infoLabel, { color: '#666' }]}>
                   Emergency Contact
                 </Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#333' }]}>
+                <Text style={[styles.infoValue, { color: '#333' }]}>
                   {profile?.emergency_contact || 'Not set'}
                 </Text>
               </View>
@@ -326,8 +320,8 @@ export default function ProfileScreen() {
 
         {/* Recent Glucose Logs */}
         {recentGlucose.length > 0 && (
-          <View style={[styles.section, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>
+          <View style={[styles.section, { backgroundColor: '#fff' }]}>
+            <Text style={[styles.sectionTitle, { color: '#333' }]}>
               Recent Glucose Readings
             </Text>
             
@@ -338,15 +332,15 @@ export default function ProfileScreen() {
                     <Text style={[styles.glucoseValue, { color: getGlucoseColor(log.glucose_value) }]}>
                       {log.glucose_value}
                     </Text>
-                    <Text style={[styles.glucoseUnit, { color: isDark ? '#ccc' : '#666' }]}>
+                    <Text style={[styles.glucoseUnit, { color: '#666' }]}>
                       mg/dL
                     </Text>
                   </View>
                   <View style={styles.glucoseDetails}>
-                    <Text style={[styles.glucoseContext, { color: isDark ? '#fff' : '#333' }]}>
+                    <Text style={[styles.glucoseContext, { color: '#333' }]}>
                       {log.context || 'General'}
                     </Text>
-                    <Text style={[styles.glucoseTime, { color: isDark ? '#ccc' : '#666' }]}>
+                    <Text style={[styles.glucoseTime, { color: '#666' }]}>
                       {new Date(log.measurement_time).toLocaleDateString()}
                     </Text>
                   </View>
@@ -358,7 +352,7 @@ export default function ProfileScreen() {
 
         {/* Sign Out Button */}
         <TouchableOpacity 
-          style={[styles.signOutButton, { backgroundColor: isDark ? '#2d3a4d' : '#f0f0f0' }]}
+          style={[styles.signOutButton, { backgroundColor: '#f0f0f0' }]}
           onPress={handleSignOut}
         >
           <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
@@ -376,7 +370,7 @@ export default function ProfileScreen() {
         onRequestClose={() => setShowEditModal(false)}
       >
         <EditProfileModal
-          isDark={isDark}
+          isDark={false}
           profile={editableProfile}
           editUsername={editUsername}
           editDiabetesType={editDiabetesType}
@@ -439,116 +433,116 @@ function EditProfileModal({
   saving,
 }: EditProfileModalProps) {
   return (
-    <View style={[styles.modalContainer, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}>
-      <View style={[styles.modalHeader, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-        <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#333' }]}>
+    <View style={[styles.modalContainer, { backgroundColor: '#f6f8fa' }]}>
+      <View style={[styles.modalHeader, { backgroundColor: '#fff' }]}>
+        <Text style={[styles.modalTitle, { color: '#333' }]}>
           Edit Profile
         </Text>
         <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color={isDark ? '#fff' : '#333'} />
+          <Ionicons name="close" size={24} color={'#333'} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
         <View style={styles.formGroup}>
-          <Text style={[styles.formLabel, { color: isDark ? '#ccc' : '#666' }]}>
+          <Text style={[styles.formLabel, { color: '#666' }]}>
             Username
           </Text>
           <TextInput
             style={[styles.formInput, { 
-              backgroundColor: isDark ? '#2d3a4d' : '#fff',
-              color: isDark ? '#fff' : '#333',
-              borderColor: isDark ? '#404040' : '#ddd'
+              backgroundColor: '#fff',
+              color: '#333',
+              borderColor: '#ddd'
             }]}
             value={editUsername}
             onChangeText={setEditUsername}
             placeholder="Enter your username"
-            placeholderTextColor={isDark ? '#999' : '#999'}
+            placeholderTextColor={'#999'}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.formLabel, { color: isDark ? '#ccc' : '#666' }]}>
+          <Text style={[styles.formLabel, { color: '#666' }]}>
             Diabetes Type
           </Text>
           <TextInput
             style={[styles.formInput, { 
-              backgroundColor: isDark ? '#2d3a4d' : '#fff',
-              color: isDark ? '#fff' : '#333',
-              borderColor: isDark ? '#404040' : '#ddd'
+              backgroundColor: '#fff',
+              color: '#333',
+              borderColor: '#ddd'
             }]}
             value={editDiabetesType}
             onChangeText={setEditDiabetesType}
             placeholder="e.g., Type 1, Type 2, Gestational, Prediabetes"
-            placeholderTextColor={isDark ? '#999' : '#999'}
+            placeholderTextColor={'#999'}
           />
         </View>
 
         <View style={styles.formGroup}>
           <View style={styles.switchRow}>
-            <Text style={[styles.formLabel, { color: isDark ? '#ccc' : '#666' }]}>
+            <Text style={[styles.formLabel, { color: '#666' }]}>
               Insulin Dependent
             </Text>
             <Switch
               value={editInsulinDependent}
               onValueChange={setEditInsulinDependent}
-              trackColor={{ false: isDark ? '#404040' : '#ddd', true: '#007AFF' }}
-              thumbColor={editInsulinDependent ? '#fff' : (isDark ? '#666' : '#f4f3f4')}
+              trackColor={{ false: '#ddd', true: '#007AFF' }}
+              thumbColor={editInsulinDependent ? '#fff' : ('#f4f3f4')}
             />
           </View>
         </View>
 
 
         <View style={styles.formGroup}>
-          <Text style={[styles.formLabel, { color: isDark ? '#ccc' : '#666' }]}>
+          <Text style={[styles.formLabel, { color: '#666' }]}>
             Medications
           </Text>
           <TextInput
             style={[styles.formInput, { 
-              backgroundColor: isDark ? '#2d3a4d' : '#fff',
-              color: isDark ? '#fff' : '#333',
-              borderColor: isDark ? '#404040' : '#ddd'
+              backgroundColor: '#fff',
+              color: '#333',
+              borderColor: '#ddd'
             }]}
             value={editMedications}
             onChangeText={setEditMedications}
             placeholder="e.g., Metformin, Insulin, Lisinopril"
-            placeholderTextColor={isDark ? '#999' : '#999'}
+            placeholderTextColor={'#999'}
             multiline
             numberOfLines={2}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.formLabel, { color: isDark ? '#ccc' : '#666' }]}>
+          <Text style={[styles.formLabel, { color: '#666' }]}>
             Emergency Contact
           </Text>
           <TextInput
             style={[styles.formInput, { 
-              backgroundColor: isDark ? '#2d3a4d' : '#fff',
-              color: isDark ? '#fff' : '#333',
-              borderColor: isDark ? '#404040' : '#ddd'
+              backgroundColor: '#fff',
+              color: '#333',
+              borderColor: '#ddd'
             }]}
             value={editEmergencyContact}
             onChangeText={setEditEmergencyContact}
             placeholder="Name and phone number"
-            placeholderTextColor={isDark ? '#999' : '#999'}
+            placeholderTextColor={'#999'}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.formLabel, { color: isDark ? '#ccc' : '#666' }]}>
+          <Text style={[styles.formLabel, { color: '#666' }]}>
             Doctor Information
           </Text>
           <TextInput
             style={[styles.formInput, { 
-              backgroundColor: isDark ? '#2d3a4d' : '#fff',
-              color: isDark ? '#fff' : '#333',
-              borderColor: isDark ? '#404040' : '#ddd'
+              backgroundColor: '#fff',
+              color: '#333',
+              borderColor: '#ddd'
             }]}
             value={editDoctorInfo}
             onChangeText={setEditDoctorInfo}
             placeholder="Doctor name and contact info"
-            placeholderTextColor={isDark ? '#999' : '#999'}
+            placeholderTextColor={'#999'}
             multiline
             numberOfLines={2}
           />

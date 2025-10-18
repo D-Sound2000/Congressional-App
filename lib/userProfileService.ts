@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 
+// User profile interface - had to add a lot of diabetes-specific fields
 export interface UserProfile {
   id: string;
   username?: string;

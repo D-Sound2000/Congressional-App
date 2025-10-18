@@ -18,11 +18,10 @@ import {
   getRecipes, 
   getMealPlan, 
   updateMealInPlan, 
-  generateDayPlan,
   getPersonalizedRecipes,
   Recipe, 
   MealPlan 
-} from '@/lib/mealPlannerService';
+} from '@/lib/mealPlannerService'; // Meal planning logic - still working on this
 import { getUserProfile } from '@/lib/userProfileService';
 import {
   getPlannerItems,
@@ -91,13 +90,13 @@ const MealCard = ({
   <TouchableOpacity 
     style={[
       styles.mealCard, 
-      { backgroundColor: isDark ? '#2d3a4d' : '#fff' }
+      { backgroundColor: '#fff' }
     ]} 
     onPress={onPress}
   >
     <View style={styles.mealHeader}>
       <Text style={styles.mealIcon}>{icon}</Text>
-      <Text style={[styles.mealTitle, { color: isDark ? '#fff' : '#333' }]}>
+      <Text style={[styles.mealTitle, { color: '#333' }]}>
         {title}
       </Text>
     </View>
@@ -109,14 +108,14 @@ const MealCard = ({
           style={styles.mealImage} 
         />
         <View style={styles.mealInfo}>
-          <Text style={[styles.mealName, { color: isDark ? '#fff' : '#333' }]}>
+          <Text style={[styles.mealName, { color: '#333' }]}>
             {meal.name}
           </Text>
           <View style={styles.nutritionInfo}>
-            <Text style={[styles.nutritionText, { color: isDark ? '#ccc' : '#666' }]}>
+            <Text style={[styles.nutritionText, { color: '#666' }]}>
               {meal.calories} cal
             </Text>
-            <Text style={[styles.nutritionText, { color: isDark ? '#ccc' : '#666' }]}>
+            <Text style={[styles.nutritionText, { color: '#666' }]}>
               {meal.carbs}g carbs
             </Text>
           </View>
@@ -124,7 +123,7 @@ const MealCard = ({
       </View>
     ) : (
       <View style={styles.emptyMeal}>
-        <Text style={[styles.addMealText, { color: isDark ? '#ccc' : '#666' }]}>
+        <Text style={[styles.addMealText, { color: '#666' }]}>
           + Add a Meal
         </Text>
       </View>
@@ -145,17 +144,17 @@ const SnackItem = ({
   <TouchableOpacity 
     style={[
       styles.snackItem, 
-      { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }
+      { backgroundColor: '#f8f9fa' }
     ]} 
     onPress={onPress}
   >
     <Text style={styles.snackIcon}>{snack.icon}</Text>
     <View style={styles.snackInfo}>
-      <Text style={[styles.snackText, { color: isDark ? '#fff' : '#333' }]}>
+      <Text style={[styles.snackText, { color: '#333' }]}>
         {snack.text}
       </Text>
       {snack.carbs && (
-        <Text style={[styles.snackCarbs, { color: isDark ? '#ccc' : '#666' }]}>
+        <Text style={[styles.snackCarbs, { color: '#666' }]}>
           {snack.carbs}
         </Text>
       )}
@@ -172,7 +171,7 @@ export default function Planner() {
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [mealSearchQuery, setMealSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDark, setIsDark] = useState(false);
+  // Removed dark mode - using light theme only
   const [loading, setLoading] = useState(false);
   const [mealPlan, setMealPlan] = useState<MealPlan | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -377,27 +376,6 @@ export default function Planner() {
     }
   };
 
-  const handleGenerateDay = async () => {
-    try {
-      setLoading(true);
-      const dateString = formatDateForAPI(selectedDate);
-      const generatedPlan = await generateDayPlan(dateString);
-      setMealPlan(generatedPlan);
-      
-      // Update snacks and reminders from generated plan
-      if (generatedPlan.snacks) {
-        setSnacks(generatedPlan.snacks);
-      }
-      
-      Alert.alert('Success', 'Your personalized meal plan has been generated!');
-    } catch (error) {
-      console.error('Error generating day plan:', error);
-      Alert.alert('Error', 'Failed to generate meal plan');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleToggleItemCompletion = async (item: PlannerItem) => {
     try {
       await togglePlannerItemCompletion(item.id, !item.completed);
@@ -442,39 +420,25 @@ export default function Planner() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}>
+    <View style={[styles.container, { backgroundColor: '#f6f8fa' }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-        <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#333' }]}>
+      <View style={[styles.header, { backgroundColor: '#fff' }]}>
+        <Text style={[styles.headerTitle, { color: '#333' }]}>
           Daily Planner
         </Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => setShowAddItemModal(true)}
-          >
-            <Text style={styles.addButtonText}>+ Add</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.themeToggle}
-            onPress={() => setIsDark(!isDark)}
-          >
-            <Text style={styles.themeIcon}>{isDark ? '☀️' : '🌙'}</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Date Navigation */}
-      <View style={[styles.dateNavigation, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
+      <View style={[styles.dateNavigation, { backgroundColor: '#fff' }]}>
         <TouchableOpacity 
           style={styles.navButton}
           onPress={() => handleDateNavigation('prev')}
         >
-          <Ionicons name="chevron-back" size={24} color={isDark ? '#fff' : '#333'} />
+          <Ionicons name="chevron-back" size={24} color={'#333'} />
         </TouchableOpacity>
         
         <View style={styles.dateInfo}>
-          <Text style={[styles.selectedDate, { color: isDark ? '#fff' : '#333' }]}>
+          <Text style={[styles.selectedDate, { color: '#333' }]}>
             {selectedDate.toLocaleDateString('en-US', { 
               weekday: 'long', 
               year: 'numeric', 
@@ -488,13 +452,13 @@ export default function Planner() {
           style={styles.navButton}
           onPress={() => handleDateNavigation('next')}
         >
-          <Ionicons name="chevron-forward" size={24} color={isDark ? '#fff' : '#333'} />
+          <Ionicons name="chevron-forward" size={24} color={'#333'} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Week Calendar */}
-        <View style={[styles.calendarContainer, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
+        <View style={[styles.calendarContainer, { backgroundColor: '#fff' }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.weekRow}>
               {weekDates.map((day, index) => (
@@ -509,20 +473,20 @@ export default function Planner() {
                         ? '#007AFF' 
                         : day.isSelected 
                           ? '#34C759' 
-                          : isDark ? '#2d3a4d' : '#f8f9fa' 
+                          : '#f8f9fa' 
                     }
                   ]}
                   onPress={() => setSelectedDate(day.fullDate)}
                 >
                   <Text style={[
                     styles.dayText,
-                    { color: (day.isToday || day.isSelected) ? '#fff' : isDark ? '#fff' : '#333' }
+                    { color: (day.isToday || day.isSelected) ? '#fff' : '#333' }
                   ]}>
                     {day.day}
                   </Text>
                   <Text style={[
                     styles.dateText,
-                    { color: (day.isToday || day.isSelected) ? '#fff' : isDark ? '#fff' : '#333' }
+                    { color: (day.isToday || day.isSelected) ? '#fff' : '#333' }
                   ]}>
                     {day.date}
                   </Text>
@@ -532,6 +496,27 @@ export default function Planner() {
           </ScrollView>
         </View>
 
+        {/* Add Planner Item Button */}
+        <TouchableOpacity 
+          style={[styles.addPlannerItemButton, { backgroundColor: '#fff' }]}
+          onPress={() => setShowAddItemModal(true)}
+        >
+          <View style={styles.addPlannerItemContent}>
+            <View style={styles.addPlannerItemIcon}>
+              <Ionicons name="add-circle" size={32} color="#007AFF" />
+            </View>
+            <View style={styles.addPlannerItemText}>
+              <Text style={[styles.addPlannerItemTitle, { color: '#333' }]}>
+                Add Planner Item
+              </Text>
+              <Text style={[styles.addPlannerItemSubtitle, { color: '#666' }]}>
+                Medications, Reminders, Checkups & More
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={'#666'} />
+          </View>
+        </TouchableOpacity>
+
         {/* Meal Cards */}
         <View style={styles.mealsContainer}>
           <MealCard
@@ -539,37 +524,37 @@ export default function Planner() {
             icon="☀️"
             meal={mealPlan?.breakfast_recipe}
             onPress={() => handleAddMeal('breakfast')}
-            isDark={isDark}
+            isDark={false}
           />
           <MealCard
             title="Lunch"
             icon="🌞"
             meal={mealPlan?.lunch_recipe}
             onPress={() => handleAddMeal('lunch')}
-            isDark={isDark}
+            isDark={false}
           />
           <MealCard
             title="Dinner"
             icon="🌙"
             meal={mealPlan?.dinner_recipe}
             onPress={() => handleAddMeal('dinner')}
-            isDark={isDark}
+            isDark={false}
           />
         </View>
 
         {/* Medications */}
         {medications.length > 0 && (
-          <View style={[styles.sectionCard, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>Today's Medications</Text>
+          <View style={[styles.sectionCard, { backgroundColor: '#fff' }]}>
+            <Text style={[styles.sectionTitle, { color: '#333' }]}>Today's Medications</Text>
             {medications.map((medication) => (
               <View key={medication.id} style={styles.medicationItem}>
                 <Text style={styles.medicationIcon}>{medication.icon}</Text>
                 <View style={styles.medicationInfo}>
-                  <Text style={[styles.medicationText, { color: isDark ? '#fff' : '#333' }]}>{medication.name}</Text>
-                  <Text style={[styles.medicationTime, { color: isDark ? '#ccc' : '#666' }]}>{medication.time}</Text>
+                  <Text style={[styles.medicationText, { color: '#333' }]}>{medication.name}</Text>
+                  <Text style={[styles.medicationTime, { color: '#666' }]}>{medication.time}</Text>
                 </View>
                 <TouchableOpacity style={styles.medicationCheck}>
-                  <Ionicons name="checkmark-circle-outline" size={24} color={isDark ? '#ccc' : '#666'} />
+                  <Ionicons name="checkmark-circle-outline" size={24} color={'#666'} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -583,13 +568,13 @@ export default function Planner() {
           const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
           
           return (
-            <View key={category} style={[styles.plannerSection, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-              <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#333' }]}>
+            <View key={category} style={[styles.plannerSection, { backgroundColor: '#fff' }]}>
+              <Text style={[styles.sectionTitle, { color: '#333' }]}>
                 {categoryTitle} ({items.length})
               </Text>
               <View style={styles.plannerItemsList}>
                 {items.map((item) => (
-                  <View key={item.id} style={[styles.plannerItem, { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }]}>
+                  <View key={item.id} style={[styles.plannerItem, { backgroundColor: '#f8f9fa' }]}>
                     <TouchableOpacity
                       style={styles.plannerItemContent}
                       onPress={() => handleToggleItemCompletion(item)}
@@ -600,7 +585,7 @@ export default function Planner() {
                           <Text style={[
                             styles.plannerItemTitle, 
                             { 
-                              color: isDark ? '#fff' : '#333',
+                              color: '#333',
                               textDecorationLine: item.completed ? 'line-through' : 'none',
                               opacity: item.completed ? 0.6 : 1
                             }
@@ -608,13 +593,13 @@ export default function Planner() {
                             {item.title}
                           </Text>
                           {item.description && (
-                            <Text style={[styles.plannerItemDescription, { color: isDark ? '#ccc' : '#666' }]}>
+                            <Text style={[styles.plannerItemDescription, { color: '#666' }]}>
                               {item.description}
                             </Text>
                           )}
                           <View style={styles.plannerItemMeta}>
                             {item.scheduled_time && (
-                              <Text style={[styles.plannerItemTime, { color: isDark ? '#ccc' : '#666' }]}>
+                              <Text style={[styles.plannerItemTime, { color: '#666' }]}>
                                 {formatTime(item.scheduled_time)}
                               </Text>
                             )}
@@ -630,14 +615,14 @@ export default function Planner() {
                           <Ionicons 
                             name={item.completed ? "checkmark-circle" : "checkmark-circle-outline"} 
                             size={24} 
-                            color={item.completed ? '#34C759' : (isDark ? '#ccc' : '#666')} 
+                            color={item.completed ? '#34C759' : ('#666')} 
                           />
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.plannerItemDelete}
                           onPress={() => handleDeleteItem(item)}
                         >
-                          <Ionicons name="trash-outline" size={20} color={isDark ? '#ccc' : '#666'} />
+                          <Ionicons name="trash-outline" size={20} color={'#666'} />
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
@@ -647,22 +632,6 @@ export default function Planner() {
             </View>
           );
         })}
-
-        {/* Generate My Day Button */}
-        <TouchableOpacity 
-          style={[styles.generateButton, loading && styles.generateButtonDisabled]}
-          onPress={handleGenerateDay}
-          disabled={loading}
-        >
-          {loading ? (
-            <View style={styles.generateButtonContent}>
-              <ActivityIndicator size="small" color="#fff" />
-              <Text style={styles.generateButtonText}>Generating...</Text>
-            </View>
-          ) : (
-            <Text style={styles.generateButtonText}>🤖 Generate My Day</Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Meal Selection Modal */}
@@ -672,21 +641,21 @@ export default function Planner() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowMealModal(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}>
-          <View style={[styles.modalHeader, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#333' }]}>
+        <View style={[styles.modalContainer, { backgroundColor: '#f6f8fa' }]}>
+          <View style={[styles.modalHeader, { backgroundColor: '#fff' }]}>
+            <Text style={[styles.modalTitle, { color: '#333' }]}>
               Choose {selectedMeal}
             </Text>
             <TouchableOpacity onPress={() => setShowMealModal(false)}>
-              <Ionicons name="close" size={24} color={isDark ? '#fff' : '#333'} />
+              <Ionicons name="close" size={24} color={'#333'} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.searchContainer}>
             <TextInput
-              style={[styles.searchInput, { backgroundColor: isDark ? '#2d3a4d' : '#fff' }]}
+              style={[styles.searchInput, { backgroundColor: '#fff' }]}
               placeholder="Search recipes..."
-              placeholderTextColor={isDark ? '#ccc' : '#666'}
+              placeholderTextColor={'#666'}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -698,7 +667,7 @@ export default function Planner() {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#007AFF" />
-              <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#333' }]}>
+              <Text style={[styles.loadingText, { color: '#333' }]}>
                 Loading recipes...
               </Text>
             </View>
@@ -708,7 +677,7 @@ export default function Planner() {
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.recipeItem, { backgroundColor: isDark ? '#2d3a4d' : '#fff' }]}
+                  style={[styles.recipeItem, { backgroundColor: '#fff' }]}
                   onPress={() => handleRecipeSelect(item)}
                 >
                   <Image 
@@ -716,17 +685,17 @@ export default function Planner() {
                     style={styles.recipeImage} 
                   />
                   <View style={styles.recipeInfo}>
-                    <Text style={[styles.recipeName, { color: isDark ? '#fff' : '#333' }]}>
+                    <Text style={[styles.recipeName, { color: '#333' }]}>
                       {item.name}
                     </Text>
                     <View style={styles.recipeDetails}>
-                      <Text style={[styles.recipeDetail, { color: isDark ? '#ccc' : '#666' }]}>
+                      <Text style={[styles.recipeDetail, { color: '#666' }]}>
                         {item.calories} cal
                       </Text>
-                      <Text style={[styles.recipeDetail, { color: isDark ? '#ccc' : '#666' }]}>
+                      <Text style={[styles.recipeDetail, { color: '#666' }]}>
                         {item.carbs}g carbs
                       </Text>
-                      <Text style={[styles.recipeDetail, { color: isDark ? '#ccc' : '#666' }]}>
+                      <Text style={[styles.recipeDetail, { color: '#666' }]}>
                         {item.prep_time} min
                       </Text>
                     </View>
@@ -747,7 +716,7 @@ export default function Planner() {
         onRequestClose={() => setShowAddItemModal(false)}
       >
         <AddItemModal 
-          isDark={isDark}
+          isDark={false}
           selectedDate={selectedDate}
           onClose={() => setShowAddItemModal(false)}
           onItemAdded={() => {
@@ -764,21 +733,21 @@ export default function Planner() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowAddMealModal(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: isDark ? '#181a20' : '#f6f8fa' }]}>
-          <View style={[styles.modalHeader, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#333' }]}>
+        <View style={[styles.modalContainer, { backgroundColor: '#f6f8fa' }]}>
+          <View style={[styles.modalHeader, { backgroundColor: '#fff' }]}>
+            <Text style={[styles.modalTitle, { color: '#333' }]}>
               Add {selectedMealType}
             </Text>
             <TouchableOpacity onPress={() => setShowAddMealModal(false)}>
-              <Ionicons name="close" size={24} color={isDark ? '#fff' : '#333'} />
+              <Ionicons name="close" size={24} color={'#333'} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.searchContainer}>
             <TextInput
-              style={[styles.searchInput, { backgroundColor: isDark ? '#2d3a4d' : '#fff', color: isDark ? '#fff' : '#333' }]}
+              style={[styles.searchInput, { backgroundColor: '#fff', color: '#333' }]}
               placeholder="Search meals or ingredients..."
-              placeholderTextColor={isDark ? '#ccc' : '#666'}
+              placeholderTextColor={'#666'}
               value={mealSearchQuery}
               onChangeText={setMealSearchQuery}
             />
@@ -853,7 +822,7 @@ export default function Planner() {
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#007AFF" />
-              <Text style={[styles.loadingText, { color: isDark ? '#fff' : '#333' }]}>
+              <Text style={[styles.loadingText, { color: '#333' }]}>
                 Searching meals...
               </Text>
             </View>
@@ -863,7 +832,7 @@ export default function Planner() {
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.recipeItem, { backgroundColor: isDark ? '#2d3a4d' : '#fff' }]}
+                  style={[styles.recipeItem, { backgroundColor: '#fff' }]}
                   onPress={() => {
                     // Add the selected recipe to the meal plan
                     handleRecipeSelect(item);
@@ -877,17 +846,17 @@ export default function Planner() {
                     style={styles.recipeImage} 
                   />
                   <View style={styles.recipeInfo}>
-                    <Text style={[styles.recipeName, { color: isDark ? '#fff' : '#333' }]}>
+                    <Text style={[styles.recipeName, { color: '#333' }]}>
                       {item.name}
                     </Text>
                     <View style={styles.recipeDetails}>
-                      <Text style={[styles.recipeDetail, { color: isDark ? '#ccc' : '#666' }]}>
+                      <Text style={[styles.recipeDetail, { color: '#666' }]}>
                         {item.calories} cal
                       </Text>
-                      <Text style={[styles.recipeDetail, { color: isDark ? '#ccc' : '#666' }]}>
+                      <Text style={[styles.recipeDetail, { color: '#666' }]}>
                         {item.carbs}g carbs
                       </Text>
-                      <Text style={[styles.recipeDetail, { color: isDark ? '#ccc' : '#666' }]}>
+                      <Text style={[styles.recipeDetail, { color: '#666' }]}>
                         {item.prep_time} min
                       </Text>
                     </View>
@@ -898,7 +867,7 @@ export default function Planner() {
               style={styles.recipesList}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Text style={[styles.emptyStateText, { color: isDark ? '#ccc' : '#666' }]}>
+                  <Text style={[styles.emptyStateText, { color: '#666' }]}>
                     Search for meals or ingredients to add to your {selectedMealType}
                   </Text>
                 </View>
@@ -931,17 +900,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  addButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   themeToggle: {
     padding: 8,
@@ -1098,30 +1056,6 @@ const styles = StyleSheet.create({
   },
   snackCarbs: {
     fontSize: 14,
-  },
-  generateButton: {
-    backgroundColor: '#007AFF',
-    margin: 16,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  generateButtonDisabled: {
-    backgroundColor: '#ccc',
-    shadowOpacity: 0.1,
-  },
-  generateButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  generateButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,
@@ -1337,5 +1271,41 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+  },
+  addPlannerItemButton: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 16,
+    padding: 20,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  addPlannerItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  addPlannerItemIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addPlannerItemText: {
+    flex: 1,
+  },
+  addPlannerItemTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  addPlannerItemSubtitle: {
+    fontSize: 14,
   },
 });
