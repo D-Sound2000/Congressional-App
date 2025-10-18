@@ -457,12 +457,12 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
 
       {/* Step Header */}
       <View style={styles.header}>
-        <Text style={[styles.stepTitle, { color: isDark ? '#fff' : '#333' }]}>
+        {/* <Text style={[styles.stepTitle, { color: isDark ? '#fff' : '#333' }]}>
           {steps[currentStep].title}
-        </Text>
-        <Text style={[styles.stepSubtitle, { color: isDark ? '#ccc' : '#666' }]}>
+        </Text> */}
+        {/* <Text style={[styles.stepSubtitle, { color: isDark ? '#ccc' : '#666' }]}>
           {steps[currentStep].subtitle}
-        </Text>
+        </Text> */}
       </View>
 
       {/* Step Content */}

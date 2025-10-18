@@ -72,7 +72,7 @@ function getGreeting(username: string) {
   const name = username || 'there';
   if (hour < 12) return `Good morning, ${name} `;
   if (hour < 17) return `Good afternoon, ${name} `;
-  return `Good evening, ${name} v`;
+  return `Good evening, ${name}`;
 }
 
 // Helper to get glucose color based on value
