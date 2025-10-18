@@ -65,6 +65,11 @@ export const saveUserProfile = async (onboardingData: OnboardingData): Promise<U
     const profileData = {
       id: user.id,
       username: onboardingData.username, // Use the username from onboarding
+      diabetes_type: onboardingData.diabetesType,
+      insulin_dependent: onboardingData.insulinDependent,
+      medications: onboardingData.medications,
+      emergency_contact: onboardingData.emergencyContact,
+      glucose_targets: glucoseTargets,
       // Store other data in a JSONB field if available, or skip for now
     };
 
