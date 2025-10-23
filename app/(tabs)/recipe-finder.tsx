@@ -96,9 +96,78 @@ export default function RecipeFinder() {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [showUrlExtraction, setShowUrlExtraction] = useState(false);
 
-  // Replace with your Spoonacular API key
+  // Spoonacular API key - replace with your own if this one is rate limited
   const SPOONACULAR_API_KEY = '75eb74379764490691e81b22b93ebf10';
   const BASE_URL = 'https://api.spoonacular.com/recipes';
+  
+  // Fallback mock data for when API is unavailable
+  const MOCK_RECIPES: Recipe[] = [
+    {
+      id: 1,
+      title: "Grilled Chicken with Vegetables",
+      image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300",
+      sugar: 8,
+      calories: 320,
+      carbs: 15,
+      protein: 35,
+      fat: 12,
+      readyInMinutes: 25,
+      servings: 4,
+      sourceUrl: "https://example.com/recipe1"
+    },
+    {
+      id: 2,
+      title: "Salmon with Quinoa",
+      image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=300",
+      sugar: 6,
+      calories: 380,
+      carbs: 28,
+      protein: 28,
+      fat: 18,
+      readyInMinutes: 30,
+      servings: 2,
+      sourceUrl: "https://example.com/recipe2"
+    },
+    {
+      id: 3,
+      title: "Vegetable Stir Fry",
+      image: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300",
+      sugar: 12,
+      calories: 180,
+      carbs: 22,
+      protein: 8,
+      fat: 6,
+      readyInMinutes: 15,
+      servings: 3,
+      sourceUrl: "https://example.com/recipe3"
+    },
+    {
+      id: 4,
+      title: "Greek Salad",
+      image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300",
+      sugar: 10,
+      calories: 220,
+      carbs: 18,
+      protein: 12,
+      fat: 14,
+      readyInMinutes: 10,
+      servings: 4,
+      sourceUrl: "https://example.com/recipe4"
+    },
+    {
+      id: 5,
+      title: "Turkey and Avocado Wrap",
+      image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=300",
+      sugar: 5,
+      calories: 280,
+      carbs: 25,
+      protein: 22,
+      fat: 12,
+      readyInMinutes: 10,
+      servings: 2,
+      sourceUrl: "https://example.com/recipe5"
+    }
+  ];
 
   const [nutritionValues, setNutritionValues] = useState<any>(null);
 
@@ -227,6 +296,28 @@ export default function RecipeFinder() {
 
       console.log('Searching URL:', url);
       let response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error('API Error:', response.status, response.statusText);
+        
+        // Handle 402 Payment Required specifically
+        if (response.status === 402) {
+          console.log('API rate limit exceeded, using mock data');
+          Alert.alert(
+            'API Limit Reached', 
+            'The recipe API has reached its daily limit. Showing sample recipes instead.',
+            [{ text: 'OK' }]
+          );
+          setRecipes(MOCK_RECIPES);
+          setLoading(false);
+          return;
+        }
+        
+        Alert.alert('Search Error', `Failed to search recipes: ${response.status} ${response.statusText}`);
+        setLoading(false);
+        return;
+      }
+      
       let data = await response.json();
       console.log('data:', data);
       if(searchMode === 'text'){
@@ -358,12 +449,36 @@ export default function RecipeFinder() {
         setRecipes(processedRecipes);
       } else {
         console.log('No results found or empty results array');
+        Alert.alert(
+          'No Results', 
+          'No recipes found for your search. Would you like to see some sample recipes instead?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Show Samples', 
+              onPress: () => {
+                setRecipes(MOCK_RECIPES);
+              }
+            }
+          ]
+        );
         setRecipes([]);
-        Alert.alert('No Results', 'No recipes found for your search. Try different criteria.');
       }
     } catch (error) {
       console.error('Error searching recipes:', error);
-      Alert.alert('Error', 'Failed to fetch recipes. Please try again.');
+      Alert.alert(
+        'Error', 
+        'Failed to fetch recipes. Would you like to see some sample recipes instead?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Show Samples', 
+            onPress: () => {
+              setRecipes(MOCK_RECIPES);
+            }
+          }
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -1183,6 +1298,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  sampleButton: {
+    backgroundColor: '#28a745',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  sampleButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   loader: {
     marginTop: 50,
   },
@@ -1196,8 +1323,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
     elevation: 3,
   },
   recipeImage: {
@@ -1285,8 +1411,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
     elevation: 5,
   },
   modalScroll: {
@@ -1547,8 +1672,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },

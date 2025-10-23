@@ -84,22 +84,33 @@ export default function BloodSugarLogger({
 
     try {
       setLoading(true);
+      console.log('Logging glucose:', value, selectedContext, notes);
       const log = await logGlucose(value, selectedContext, notes);
+      console.log('Glucose logged successfully:', log);
       
       // Show feedback based on glucose level
       const range = getGlucoseRange(value);
-      Alert.alert(
-        `Glucose Logged: ${range.label}`,
-        `Your reading of ${value} mg/dL is ${range.label.toLowerCase()}. ${getGlucoseAdvice(range, selectedContext)}`,
-        [
-          { text: 'OK', onPress: () => {
-            setGlucoseValue('');
-            setNotes('');
-            onLogSuccess?.(log);
-            onClose();
-          }}
-        ]
-      );
+      
+      // Clear the form immediately
+      setGlucoseValue('');
+      setNotes('');
+      
+      // Call the success callback to refresh parent data
+      console.log('Calling onLogSuccess callback...');
+      onLogSuccess?.(log);
+      
+      // Close the modal immediately
+      console.log('Closing modal...');
+      onClose();
+      
+      // Show success message after closing
+      setTimeout(() => {
+        Alert.alert(
+          `Glucose Logged Successfully!`,
+          `Your reading of ${value} mg/dL is ${range.label.toLowerCase()}. ${getGlucoseAdvice(range, selectedContext)}`,
+          [{ text: 'OK' }]
+        );
+      }, 100);
     } catch (error) {
       console.error('Error logging glucose:', error);
       Alert.alert('Error', 'Failed to log glucose reading');
@@ -110,11 +121,13 @@ export default function BloodSugarLogger({
 
   const getGlucoseAdvice = (range: any, context: string) => {
     if (range.label === 'Low') {
-      return 'Consider having a quick-acting carbohydrate like glucose tablets or juice.';
-    } else if (range.label === 'High' || range.label === 'Very High') {
-      return 'Consider drinking water, light exercise, or adjusting your meal plan.';
+      return 'Eat 15g fast-acting carbs (4 glucose tablets, 4oz juice, or 1 tbsp honey). Recheck in 15 minutes.';
+    } else if (range.label === 'High') {
+      return 'Take a 20-30 minute walk to help lower your glucose naturally. Consider reducing carbs in your next meal.';
+    } else if (range.label === 'Very High') {
+      return 'Drink plenty of water and consider light exercise. If this persists, contact your healthcare provider.';
     } else {
-      return 'Great! Your glucose is in a healthy range.';
+      return 'Excellent! Your glucose is in a healthy range. Keep up your great management!';
     }
   };
 
@@ -266,10 +279,11 @@ export default function BloodSugarLogger({
             style={[
               styles.logButton,
               loading && styles.logButtonDisabled,
+              (!glucoseValue || loading) && styles.logButtonDisabled,
               range && { backgroundColor: range.color }
             ]}
             onPress={handleLogGlucose}
-            disabled={loading}
+            disabled={loading || !glucoseValue}
           >
             <Text style={styles.logButtonText}>
               {loading ? 'Logging...' : 'Log Reading'}

@@ -19,6 +19,15 @@ const BloodSugarSnapshot: React.FC<BloodSugarSnapshotProps> = ({
   context,
   data,
 }) => {
+  // Debug logging
+  console.log('BloodSugarSnapshot received props:', {
+    glucose,
+    time,
+    context,
+    dataLength: data?.length,
+    data: data
+  });
+
   return (
     <View style={styles.card}>
       {/* Glucose reading and context */}

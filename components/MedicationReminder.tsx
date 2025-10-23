@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserProfile, UserProfile } from '@/lib/userProfileService';
+import EnhancedGlucoseTargets from './EnhancedGlucoseTargets';
 
 interface MedicationReminderProps {
   isDark?: boolean;
@@ -171,18 +172,6 @@ export default function MedicationReminder({ isDark = false }: MedicationReminde
           );
         })}
 
-        {/* Emergency Contact Info */}
-        {userProfile.emergency_contact && (
-          <View style={[styles.emergencyCard, { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }]}>
-            <Text style={[styles.emergencyTitle, { color: isDark ? '#fff' : '#333' }]}>
-              Emergency Contact
-            </Text>
-            <Text style={[styles.emergencyText, { color: isDark ? '#ccc' : '#666' }]}>
-              {userProfile.emergency_contact}
-            </Text>
-          </View>
-        )}
-
         {/* Doctor Info */}
         {userProfile.doctor_info && (
           <View style={[styles.doctorCard, { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }]}>
@@ -195,48 +184,8 @@ export default function MedicationReminder({ isDark = false }: MedicationReminde
           </View>
         )}
 
-        {/* Glucose Targets */}
-        {userProfile.glucose_targets && (
-          <View style={[styles.targetsCard, { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }]}>
-            <Text style={[styles.targetsTitle, { color: isDark ? '#fff' : '#333' }]}>
-              Your Glucose Targets
-            </Text>
-            <View style={styles.targetsGrid}>
-              <View style={styles.targetItem}>
-                <Text style={[styles.targetLabel, { color: isDark ? '#fff' : '#333' }]}>
-                  Fasting
-                </Text>
-                <Text style={[styles.targetValue, { color: '#4caf50' }]}>
-                  {userProfile.glucose_targets.fasting}
-                </Text>
-              </View>
-              <View style={styles.targetItem}>
-                <Text style={[styles.targetLabel, { color: isDark ? '#fff' : '#333' }]}>
-                  Before Meals
-                </Text>
-                <Text style={[styles.targetValue, { color: '#4caf50' }]}>
-                  {userProfile.glucose_targets.beforeMeal}
-                </Text>
-              </View>
-              <View style={styles.targetItem}>
-                <Text style={[styles.targetLabel, { color: isDark ? '#fff' : '#333' }]}>
-                  After Meals
-                </Text>
-                <Text style={[styles.targetValue, { color: '#4caf50' }]}>
-                  {userProfile.glucose_targets.afterMeal}
-                </Text>
-              </View>
-              <View style={styles.targetItem}>
-                <Text style={[styles.targetLabel, { color: isDark ? '#fff' : '#333' }]}>
-                  Bedtime
-                </Text>
-                <Text style={[styles.targetValue, { color: '#4caf50' }]}>
-                  {userProfile.glucose_targets.bedtime}
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
+        {/* Enhanced Glucose Targets */}
+        <EnhancedGlucoseTargets isDark={isDark} />
       </ScrollView>
     </View>
   );

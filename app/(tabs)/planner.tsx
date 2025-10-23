@@ -14,6 +14,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
 import { 
   getRecipes, 
   getMealPlan, 
@@ -27,7 +29,6 @@ import {
   getPlannerItems,
   createPlannerItem,
   updatePlannerItem,
-  deletePlannerItem,
   togglePlannerItemCompletion,
   PlannerItem,
   CreatePlannerItemData,
@@ -79,21 +80,20 @@ const MealCard = ({
   icon, 
   meal, 
   onPress, 
+  onMealPress,
   isDark = false 
 }: {
   title: string;
   icon: string;
   meal?: Recipe;
   onPress: () => void;
+  onMealPress?: (recipe: Recipe) => void;
   isDark?: boolean;
 }) => (
-  <TouchableOpacity 
-    style={[
-      styles.mealCard, 
-      { backgroundColor: '#fff' }
-    ]} 
-    onPress={onPress}
-  >
+  <View style={[
+    styles.mealCard, 
+    { backgroundColor: '#fff' }
+  ]}>
     <View style={styles.mealHeader}>
       <Text style={styles.mealIcon}>{icon}</Text>
       <Text style={[styles.mealTitle, { color: '#333' }]}>
@@ -102,7 +102,10 @@ const MealCard = ({
     </View>
     
     {meal ? (
-      <View style={styles.mealContent}>
+      <TouchableOpacity 
+        style={styles.mealContent}
+        onPress={() => onMealPress?.(meal)}
+      >
         <Image 
           source={{ uri: meal.image_url || 'https://placehold.co/80x60/png' }} 
           style={styles.mealImage} 
@@ -120,15 +123,19 @@ const MealCard = ({
             </Text>
           </View>
         </View>
-      </View>
+        <Ionicons name="chevron-forward" size={20} color="#666" />
+      </TouchableOpacity>
     ) : (
-      <View style={styles.emptyMeal}>
+      <TouchableOpacity 
+        style={styles.emptyMeal}
+        onPress={onPress}
+      >
         <Text style={[styles.addMealText, { color: '#666' }]}>
           + Add a Meal
         </Text>
-      </View>
+      </TouchableOpacity>
     )}
-  </TouchableOpacity>
+  </View>
 );
 
 // Snack item component
@@ -163,6 +170,7 @@ const SnackItem = ({
 );
 
 export default function Planner() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
   const [showMealModal, setShowMealModal] = useState(false);
@@ -177,12 +185,132 @@ export default function Planner() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [plannerItems, setPlannerItems] = useState<PlannerItem[]>([]);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [snacks, setSnacks] = useState([
     { id: '1', icon: '🥛', text: 'Greek Yogurt', carbs: '10g carbs' },
     { id: '2', icon: '💧', text: 'Drink water', carbs: null },
     { id: '3', icon: '💊', text: 'Check glucose after lunch', carbs: null },
   ]);
   const [medications, setMedications] = useState<any[]>([]);
+
+  // Mock data for when API is unavailable
+  const MOCK_RECIPES: Recipe[] = [
+    {
+      id: 1001,
+      name: "Grilled Chicken with Vegetables",
+      description: "A healthy and delicious grilled chicken breast with seasonal vegetables, perfect for diabetes management.",
+      image_url: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300",
+      prep_time: 15,
+      cook_time: 25,
+      servings: 4,
+      calories: 320,
+      carbs: 15,
+      protein: 35,
+      fat: 12,
+      fiber: 4,
+      sugar: 8,
+      sodium: 450,
+      category: 'dinner',
+      difficulty: 'easy',
+      tags: ['low-carb', 'high-protein', 'diabetes-friendly'],
+      ingredients: ['chicken breast', 'mixed vegetables', 'olive oil', 'herbs'],
+      instructions: ['Season chicken', 'Grill for 20 minutes', 'Serve with vegetables'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 1002,
+      name: "Salmon with Quinoa",
+      description: "Nutrient-rich salmon paired with quinoa, providing omega-3s and complete protein for stable blood sugar.",
+      image_url: "https://images.unsplash.com/photo-1467009585-2f8a72700288?w=300",
+      prep_time: 10,
+      cook_time: 30,
+      servings: 2,
+      calories: 380,
+      carbs: 28,
+      protein: 28,
+      fat: 18,
+      fiber: 3,
+      sugar: 6,
+      sodium: 320,
+      category: 'dinner',
+      difficulty: 'medium',
+      tags: ['omega-3', 'complete-protein', 'gluten-free'],
+      ingredients: ['salmon fillet', 'quinoa', 'lemon', 'dill'],
+      instructions: ['Cook quinoa', 'Season salmon', 'Bake for 25 minutes'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 1003,
+      name: "Vegetable Stir Fry",
+      description: "Quick and colorful vegetable stir fry with minimal carbs, ideal for maintaining stable glucose levels.",
+      image_url: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300",
+      prep_time: 10,
+      cook_time: 15,
+      servings: 3,
+      calories: 180,
+      carbs: 22,
+      protein: 8,
+      fat: 6,
+      fiber: 6,
+      sugar: 12,
+      sodium: 280,
+      category: 'lunch',
+      difficulty: 'easy',
+      tags: ['vegetarian', 'low-calorie', 'high-fiber'],
+      ingredients: ['mixed vegetables', 'soy sauce', 'garlic', 'ginger'],
+      instructions: ['Heat oil', 'Add vegetables', 'Stir fry for 10 minutes'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 1004,
+      name: "Greek Salad",
+      description: "Fresh Mediterranean salad with feta cheese and olives, providing healthy fats and minimal sugar impact.",
+      image_url: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300",
+      prep_time: 15,
+      cook_time: 0,
+      servings: 4,
+      calories: 220,
+      carbs: 18,
+      protein: 12,
+      fat: 14,
+      fiber: 4,
+      sugar: 10,
+      sodium: 380,
+      category: 'lunch',
+      difficulty: 'easy',
+      tags: ['mediterranean', 'fresh', 'healthy-fats'],
+      ingredients: ['tomatoes', 'cucumber', 'feta cheese', 'olives', 'olive oil'],
+      instructions: ['Chop vegetables', 'Add feta and olives', 'Drizzle with olive oil'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 1005,
+      name: "Turkey and Avocado Wrap",
+      description: "Lean protein wrap with healthy fats from avocado, perfect for a balanced meal with controlled carbs.",
+      image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=300",
+      prep_time: 10,
+      cook_time: 0,
+      servings: 2,
+      calories: 280,
+      carbs: 25,
+      protein: 22,
+      fat: 12,
+      fiber: 8,
+      sugar: 5,
+      sodium: 420,
+      category: 'lunch',
+      difficulty: 'easy',
+      tags: ['portable', 'lean-protein', 'healthy-fats'],
+      ingredients: ['turkey breast', 'avocado', 'lettuce', 'whole wheat tortilla'],
+      instructions: ['Slice turkey and avocado', 'Wrap in tortilla', 'Serve immediately'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
 
   const weekDates = getWeekDates(selectedDate);
   const extendedWeekDates = getExtendedWeekDates(selectedDate);
@@ -286,14 +414,93 @@ export default function Planner() {
     try {
       setLoading(true);
       const dateString = formatDateForAPI(selectedDate);
+      const mealType = selectedMeal || selectedMealType;
+      
+      // First, save the recipe to the local database if it doesn't exist
+      let localRecipeId = recipe.id;
+      
+      // Check if this is an external recipe (from Spoonacular API)
+      // External recipes typically have large IDs (> 1000) while local ones are smaller
+      if (recipe.id > 1000) {
+        try {
+          console.log('Processing external recipe:', recipe.name, 'ID:', recipe.id);
+          
+          // First check if this external recipe already exists in our database
+          const { data: existingRecipe, error: findError } = await supabase
+            .from('recipes')
+            .select('id')
+            .ilike('description', `External Recipe ID: ${recipe.id}%`)
+            .single();
+          
+          if (existingRecipe) {
+            localRecipeId = existingRecipe.id;
+            console.log('Found existing external recipe with local ID:', localRecipeId);
+          } else {
+            console.log('Saving new external recipe to database...');
+            
+            // Prepare the recipe data with proper type conversion
+            // Note: calories is INTEGER, others are DECIMAL(5,2)
+            const recipeData = {
+              name: recipe.name,
+              description: `External Recipe ID: ${recipe.id}\n\n${recipe.description || ''}`,
+              image_url: recipe.image_url,
+              prep_time: typeof recipe.prep_time === 'string' ? parseInt(recipe.prep_time) || 0 : (recipe.prep_time || 0),
+              cook_time: typeof recipe.cook_time === 'string' ? parseInt(recipe.cook_time) || 0 : (recipe.cook_time || 0),
+              servings: typeof recipe.servings === 'string' ? parseInt(recipe.servings) || 1 : (recipe.servings || 1),
+              calories: Math.round(parseFloat(String(recipe.calories)) || 0), // INTEGER - round to whole number
+              carbs: parseFloat(String(recipe.carbs)) || 0, // DECIMAL(5,2)
+              protein: parseFloat(String(recipe.protein)) || 0, // DECIMAL(5,2)
+              fat: parseFloat(String(recipe.fat)) || 0, // DECIMAL(5,2)
+              fiber: parseFloat(String(recipe.fiber)) || 0, // DECIMAL(5,2)
+              sugar: parseFloat(String(recipe.sugar)) || 0, // DECIMAL(5,2)
+              sodium: parseFloat(String(recipe.sodium)) || 0, // DECIMAL(5,2)
+              category: recipe.category || 'dinner',
+              difficulty: recipe.difficulty || 'medium',
+              tags: recipe.tags || [],
+              ingredients: recipe.ingredients || [],
+              instructions: recipe.instructions || [],
+            };
+            
+            console.log('Recipe data prepared:', recipeData);
+            
+            // For external recipes, we'll save them with a new local ID
+            const { data: savedRecipe, error: saveError } = await supabase
+              .from('recipes')
+              .insert(recipeData)
+              .select('id')
+              .single();
+              
+              if (saveError) {
+                console.error('Detailed error saving recipe to database:', {
+                  error: saveError,
+                  recipeData: recipeData,
+                  recipe: recipe
+                });
+                Alert.alert('Database Error', `Failed to save recipe: ${saveError.message}`);
+                throw new Error(`Failed to save recipe to database: ${saveError.message}`);
+              }
+              
+              localRecipeId = savedRecipe.id;
+              console.log('External recipe saved successfully with local ID:', localRecipeId);
+          }
+        } catch (dbError: any) {
+          console.error('Error handling external recipe:', dbError);
+          const errorMessage = dbError?.message || 'Unknown error';
+          Alert.alert('Error', `Failed to save recipe: ${errorMessage}`);
+          throw new Error(`Failed to save recipe to database: ${errorMessage}`);
+        }
+      }
+      
       const updatedPlan = await updateMealInPlan(
         dateString,
-        selectedMeal as 'breakfast' | 'lunch' | 'dinner',
-        recipe.id
+        mealType as 'breakfast' | 'lunch' | 'dinner',
+        localRecipeId
       );
       setMealPlan(updatedPlan);
       setShowMealModal(false);
+      setShowAddMealModal(false);
       setSelectedMeal(null);
+      setSelectedMealType(null);
     } catch (error) {
       console.error('Error selecting recipe:', error);
       Alert.alert('Error', 'Failed to save meal selection');
@@ -321,11 +528,41 @@ export default function Planner() {
       console.log('Autocomplete URL:', autocompleteUrl);
       
       const autocompleteResponse = await fetch(autocompleteUrl);
+      
+      // Check for API errors
+      if (autocompleteResponse.status === 402) {
+        console.log('API rate limit exceeded, using mock data');
+        Alert.alert(
+          'API Limit Reached', 
+          'The recipe API has reached its daily limit. Showing sample recipes instead.',
+          [{ text: 'OK' }]
+        );
+        setRecipes(MOCK_RECIPES);
+        setLoading(false);
+        return;
+      }
+      
+      if (!autocompleteResponse.ok) {
+        throw new Error(`API Error: ${autocompleteResponse.status}`);
+      }
+      
       const autocompleteData = await autocompleteResponse.json();
       console.log('Autocomplete results:', autocompleteData);
       
       if (!autocompleteData || autocompleteData.length === 0) {
-        Alert.alert('No Results', `No recipes found for "${mealSearchQuery}". Try different keywords.`);
+        Alert.alert(
+          'No Results', 
+          `No recipes found for "${mealSearchQuery}". Would you like to see some sample recipes instead?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Show Samples', 
+              onPress: () => {
+                setRecipes(MOCK_RECIPES);
+              }
+            }
+          ]
+        );
         setRecipes([]);
         return;
       }
@@ -336,6 +573,24 @@ export default function Planner() {
       console.log('Details URL:', detailsUrl);
       
       const detailsResponse = await fetch(detailsUrl);
+      
+      // Check for API errors on details call too
+      if (detailsResponse.status === 402) {
+        console.log('API rate limit exceeded on details call, using mock data');
+        Alert.alert(
+          'API Limit Reached', 
+          'The recipe API has reached its daily limit. Showing sample recipes instead.',
+          [{ text: 'OK' }]
+        );
+        setRecipes(MOCK_RECIPES);
+        setLoading(false);
+        return;
+      }
+      
+      if (!detailsResponse.ok) {
+        throw new Error(`Details API Error: ${detailsResponse.status}`);
+      }
+      
       const detailsData = await detailsResponse.json();
       console.log('Recipe details:', detailsData);
       
@@ -345,16 +600,16 @@ export default function Planner() {
         name: recipe.title,
         description: recipe.summary?.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
         image_url: recipe.image,
-        prep_time: recipe.preparationMinutes || 15,
-        cook_time: recipe.cookingMinutes || 20,
-        servings: recipe.servings || 4,
-        calories: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
-        carbs: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-        protein: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-        fat: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
-        fiber: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fiber')?.amount || 0,
-        sugar: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
-        sodium: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sodium')?.amount || 0,
+        prep_time: parseInt(recipe.preparationMinutes) || 15,
+        cook_time: parseInt(recipe.cookingMinutes) || 20,
+        servings: parseInt(recipe.servings) || 4,
+        calories: Math.round(parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount) || 0), // INTEGER
+        carbs: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount) || 0, // DECIMAL
+        protein: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount) || 0, // DECIMAL
+        fat: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount) || 0, // DECIMAL
+        fiber: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fiber')?.amount) || 0, // DECIMAL
+        sugar: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount) || 0, // DECIMAL
+        sodium: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sodium')?.amount) || 0, // DECIMAL
         category: 'dinner', // Default category
         difficulty: 'medium',
         tags: recipe.diets || [],
@@ -369,7 +624,19 @@ export default function Planner() {
       
     } catch (error) {
       console.error('Error searching meals:', error);
-      Alert.alert('Error', 'Failed to search meals. Please check your internet connection.');
+      Alert.alert(
+        'Error', 
+        'Failed to search meals. Would you like to see some sample recipes instead?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Show Samples', 
+            onPress: () => {
+              setRecipes(MOCK_RECIPES);
+            }
+          }
+        ]
+      );
       setRecipes([]);
     } finally {
       setLoading(false);
@@ -386,28 +653,6 @@ export default function Planner() {
     }
   };
 
-  const handleDeleteItem = async (item: PlannerItem) => {
-    Alert.alert(
-      'Delete Item',
-      `Are you sure you want to delete "${item.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deletePlannerItem(item.id);
-              await loadPlannerItems(); // Reload items
-            } catch (error) {
-              console.error('Error deleting item:', error);
-              Alert.alert('Error', 'Failed to delete item');
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const handleDateNavigation = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedDate);
@@ -417,6 +662,10 @@ export default function Planner() {
       newDate.setDate(selectedDate.getDate() + 1);
     }
     setSelectedDate(newDate);
+  };
+
+  const handleMealPress = (recipe: Recipe) => {
+    router.push(`/meal-detail?recipeId=${recipe.id}`);
   };
 
   return (
@@ -524,6 +773,7 @@ export default function Planner() {
             icon="☀️"
             meal={mealPlan?.breakfast_recipe}
             onPress={() => handleAddMeal('breakfast')}
+            onMealPress={handleMealPress}
             isDark={false}
           />
           <MealCard
@@ -531,6 +781,7 @@ export default function Planner() {
             icon="🌞"
             meal={mealPlan?.lunch_recipe}
             onPress={() => handleAddMeal('lunch')}
+            onMealPress={handleMealPress}
             isDark={false}
           />
           <MealCard
@@ -538,6 +789,7 @@ export default function Planner() {
             icon="🌙"
             meal={mealPlan?.dinner_recipe}
             onPress={() => handleAddMeal('dinner')}
+            onMealPress={handleMealPress}
             isDark={false}
           />
         </View>
@@ -561,6 +813,26 @@ export default function Planner() {
           </View>
         )}
 
+        {/* Planner Items Toggle */}
+        {Object.keys(groupedItems).length > 0 && (
+          <View style={[styles.plannerToggleSection, { backgroundColor: '#fff' }]}>
+            <Text style={[styles.sectionTitle, { color: '#333' }]}>Planner Items</Text>
+            <TouchableOpacity
+              style={styles.toggleButton}
+              onPress={() => setShowCompleted(!showCompleted)}
+            >
+              <Ionicons 
+                name={showCompleted ? "eye-off-outline" : "eye-outline"} 
+                size={20} 
+                color="#007AFF" 
+              />
+              <Text style={[styles.toggleText, { color: '#007AFF' }]}>
+                {showCompleted ? 'Hide Completed' : 'Show Completed'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Planner Items by Category */}
         {Object.entries(groupedItems).map(([category, items]) => {
           if (items.length === 0) return null;
@@ -570,10 +842,25 @@ export default function Planner() {
           return (
             <View key={category} style={[styles.plannerSection, { backgroundColor: '#fff' }]}>
               <Text style={[styles.sectionTitle, { color: '#333' }]}>
-                {categoryTitle} ({items.length})
+                {categoryTitle} ({items.filter(item => !item.completed).length})
               </Text>
               <View style={styles.plannerItemsList}>
-                {items.map((item) => (
+                {items
+                  .filter(item => showCompleted || !item.completed)
+                  .sort((a, b) => {
+                    // First sort by completion status (pending first, completed last)
+                    if (a.completed !== b.completed) {
+                      return a.completed ? 1 : -1;
+                    }
+                    
+                    // Then sort by priority (high to low)
+                    const priorityOrder = { high: 3, medium: 2, low: 1 };
+                    const aPriority = priorityOrder[a.priority] || 0;
+                    const bPriority = priorityOrder[b.priority] || 0;
+                    
+                    return bPriority - aPriority;
+                  })
+                  .map((item) => (
                   <View key={item.id} style={[styles.plannerItem, { backgroundColor: '#f8f9fa' }]}>
                     <TouchableOpacity
                       style={styles.plannerItemContent}
@@ -592,16 +879,39 @@ export default function Planner() {
                           ]}>
                             {item.title}
                           </Text>
-                          {item.description && (
-                            <Text style={[styles.plannerItemDescription, { color: '#666' }]}>
-                              {item.description}
-                            </Text>
-                          )}
                           <View style={styles.plannerItemMeta}>
                             {item.scheduled_time && (
-                              <Text style={[styles.plannerItemTime, { color: '#666' }]}>
-                                {formatTime(item.scheduled_time)}
-                              </Text>
+                              <TouchableOpacity
+                                style={styles.timeButton}
+                                onPress={() => {
+                                  Alert.alert(
+                                    'Scheduled Time',
+                                    `This item is scheduled for ${formatTime(item.scheduled_time)}`,
+                                    [{ text: 'OK' }]
+                                  );
+                                }}
+                              >
+                                <Ionicons name="time-outline" size={16} color="#007AFF" />
+                                <Text style={[styles.plannerItemTime, { color: '#007AFF' }]}>
+                                  {formatTime(item.scheduled_time)}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                            {item.duration && (
+                              <View style={styles.durationBadge}>
+                                <Ionicons name="hourglass-outline" size={14} color="#666" />
+                                <Text style={styles.durationText}>
+                                  {item.duration}m
+                                </Text>
+                              </View>
+                            )}
+                            {item.item_type === 'medication' && item.metadata?.dosage && (
+                              <View style={styles.dosageBadge}>
+                                <Ionicons name="medical-outline" size={14} color="#e74c3c" />
+                                <Text style={styles.dosageText}>
+                                  {item.metadata.dosage}
+                                </Text>
+                              </View>
                             )}
                             <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(item.priority) }]} />
                           </View>
@@ -617,12 +927,6 @@ export default function Planner() {
                             size={24} 
                             color={item.completed ? '#34C759' : ('#666')} 
                           />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.plannerItemDelete}
-                          onPress={() => handleDeleteItem(item)}
-                        >
-                          <Ionicons name="trash-outline" size={20} color={'#666'} />
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
@@ -783,16 +1087,16 @@ export default function Planner() {
                       name: recipe.title,
                       description: recipe.summary?.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
                       image_url: recipe.image,
-                      prep_time: recipe.preparationMinutes || 15,
-                      cook_time: recipe.cookingMinutes || 20,
-                      servings: recipe.servings || 4,
-                      calories: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
-                      carbs: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
-                      protein: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
-                      fat: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
-                      fiber: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fiber')?.amount || 0,
-                      sugar: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount || 0,
-                      sodium: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sodium')?.amount || 0,
+                      prep_time: parseInt(recipe.preparationMinutes) || 15,
+                      cook_time: parseInt(recipe.cookingMinutes) || 20,
+                      servings: parseInt(recipe.servings) || 4,
+                      calories: Math.round(parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount) || 0), // INTEGER
+                      carbs: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount) || 0, // DECIMAL
+                      protein: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount) || 0, // DECIMAL
+                      fat: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount) || 0, // DECIMAL
+                      fiber: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fiber')?.amount) || 0, // DECIMAL
+                      sugar: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sugar')?.amount) || 0, // DECIMAL
+                      sodium: parseFloat(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Sodium')?.amount) || 0, // DECIMAL
                       category: 'dinner',
                       difficulty: 'medium',
                       tags: recipe.diets || [],
@@ -934,8 +1238,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 16,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     elevation: 4,
   },
   weekRow: {
@@ -950,8 +1253,7 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   todayBox: {
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
     elevation: 6,
   },
   dayText: {
@@ -970,8 +1272,7 @@ const styles = StyleSheet.create({
   mealCard: {
     borderRadius: 16,
     padding: 20,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     elevation: 4,
   },
   mealHeader: {
@@ -1024,8 +1325,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     elevation: 4,
   },
   sectionTitle: {
@@ -1137,8 +1437,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
     elevation: 2,
   },
   recipeImage: {
@@ -1193,8 +1492,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     elevation: 4,
   },
   plannerItemsList: {
@@ -1238,6 +1536,69 @@ const styles = StyleSheet.create({
   plannerItemTime: {
     fontSize: 12,
   },
+  timeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: '#f0f8ff',
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: '#f5f5f5',
+  },
+  durationText: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: '500',
+  },
+  dosageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: '#fdf2f2',
+  },
+  dosageText: {
+    fontSize: 11,
+    color: '#e74c3c',
+    fontWeight: '500',
+  },
+  plannerToggleSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    margin: 16,
+    marginBottom: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0f8ff',
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   priorityDot: {
     width: 8,
     height: 8,
@@ -1251,12 +1612,8 @@ const styles = StyleSheet.create({
   plannerItemCheck: {
     padding: 4,
   },
-  plannerItemDelete: {
-    padding: 4,
-  },
   selectedBox: {
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
     elevation: 6,
   },
   sectionCard: {
@@ -1266,8 +1623,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingVertical: 16,
     paddingHorizontal: 12,
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
     elevation: 3,
     borderWidth: 1,
     borderColor: '#e0e0e0',
@@ -1278,8 +1634,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 16,
     padding: 20,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     elevation: 4,
     borderWidth: 2,
     borderColor: '#007AFF',

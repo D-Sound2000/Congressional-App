@@ -146,24 +146,56 @@ export const getMealPlan = async (date: string): Promise<MealPlan | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
+    // First get the meal plan
+    const { data: mealPlan, error: mealPlanError } = await supabase
       .from('meal_plans')
-      .select(`
-        *,
-        breakfast_recipe:recipes!breakfast_recipe_id(*),
-        lunch_recipe:recipes!lunch_recipe_id(*),
-        dinner_recipe:recipes!dinner_recipe_id(*)
-      `)
+      .select('*')
       .eq('user_id', user.id)
       .eq('plan_date', date)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error fetching meal plan:', error);
-      throw error;
+    if (mealPlanError && mealPlanError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error fetching meal plan:', mealPlanError);
+      throw mealPlanError;
     }
 
-    return data;
+    if (!mealPlan) {
+      return null;
+    }
+
+    // Now fetch the related recipes
+    const recipeIds = [
+      mealPlan.breakfast_recipe_id,
+      mealPlan.lunch_recipe_id,
+      mealPlan.dinner_recipe_id
+    ].filter(Boolean);
+
+    let recipes = [];
+    if (recipeIds.length > 0) {
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('*')
+        .in('id', recipeIds);
+
+      if (recipesError) {
+        console.error('Error fetching recipes:', recipesError);
+        throw recipesError;
+      }
+
+      recipes = recipesData || [];
+    }
+
+    // Map recipes back to the meal plan
+    const breakfastRecipe = recipes.find(r => r.id === mealPlan.breakfast_recipe_id);
+    const lunchRecipe = recipes.find(r => r.id === mealPlan.lunch_recipe_id);
+    const dinnerRecipe = recipes.find(r => r.id === mealPlan.dinner_recipe_id);
+
+    return {
+      ...mealPlan,
+      breakfast_recipe: breakfastRecipe,
+      lunch_recipe: lunchRecipe,
+      dinner_recipe: dinnerRecipe,
+    };
   } catch (error) {
     console.error('Error in getMealPlan:', error);
     throw error;
@@ -180,13 +212,10 @@ export const saveMealPlan = async (mealPlan: Partial<MealPlan>): Promise<MealPla
       .upsert({
         ...mealPlan,
         user_id: user.id,
+      }, {
+        onConflict: 'user_id,plan_date'
       })
-      .select(`
-        *,
-        breakfast_recipe:recipes!breakfast_recipe_id(*),
-        lunch_recipe:recipes!lunch_recipe_id(*),
-        dinner_recipe:recipes!dinner_recipe_id(*)
-      `)
+      .select('*')
       .single();
 
     if (error) {
@@ -194,7 +223,39 @@ export const saveMealPlan = async (mealPlan: Partial<MealPlan>): Promise<MealPla
       throw error;
     }
 
-    return data;
+    // Now fetch the related recipes
+    const recipeIds = [
+      data.breakfast_recipe_id,
+      data.lunch_recipe_id,
+      data.dinner_recipe_id
+    ].filter(Boolean);
+
+    let recipes = [];
+    if (recipeIds.length > 0) {
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('*')
+        .in('id', recipeIds);
+
+      if (recipesError) {
+        console.error('Error fetching recipes:', recipesError);
+        // Don't throw here, just return without recipes
+      } else {
+        recipes = recipesData || [];
+      }
+    }
+
+    // Map recipes back to the meal plan
+    const breakfastRecipe = recipes.find(r => r.id === data.breakfast_recipe_id);
+    const lunchRecipe = recipes.find(r => r.id === data.lunch_recipe_id);
+    const dinnerRecipe = recipes.find(r => r.id === data.dinner_recipe_id);
+
+    return {
+      ...data,
+      breakfast_recipe: breakfastRecipe,
+      lunch_recipe: lunchRecipe,
+      dinner_recipe: dinnerRecipe,
+    };
   } catch (error) {
     console.error('Error in saveMealPlan:', error);
     throw error;
@@ -230,12 +291,7 @@ export const updateMealInPlan = async (
         .from('meal_plans')
         .update(updateData)
         .eq('id', mealPlan.id)
-        .select(`
-          *,
-          breakfast_recipe:recipes!breakfast_recipe_id(*),
-          lunch_recipe:recipes!lunch_recipe_id(*),
-          dinner_recipe:recipes!dinner_recipe_id(*)
-        `)
+        .select('*')
         .single();
 
       if (error) {
@@ -243,7 +299,39 @@ export const updateMealInPlan = async (
         throw error;
       }
 
-      return data;
+      // Now fetch the related recipes
+      const recipeIds = [
+        data.breakfast_recipe_id,
+        data.lunch_recipe_id,
+        data.dinner_recipe_id
+      ].filter(Boolean);
+
+      let recipes = [];
+      if (recipeIds.length > 0) {
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('*')
+          .in('id', recipeIds);
+
+        if (recipesError) {
+          console.error('Error fetching recipes:', recipesError);
+          // Don't throw here, just return without recipes
+        } else {
+          recipes = recipesData || [];
+        }
+      }
+
+      // Map recipes back to the meal plan
+      const breakfastRecipe = recipes.find(r => r.id === data.breakfast_recipe_id);
+      const lunchRecipe = recipes.find(r => r.id === data.lunch_recipe_id);
+      const dinnerRecipe = recipes.find(r => r.id === data.dinner_recipe_id);
+
+      return {
+        ...data,
+        breakfast_recipe: breakfastRecipe,
+        lunch_recipe: lunchRecipe,
+        dinner_recipe: dinnerRecipe,
+      };
     }
 
     return mealPlan!;

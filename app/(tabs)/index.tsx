@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Pressable, Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import BloodSugarSnapshot from '@/components/BloodSugarSnapshot';
 import BloodSugarLogger from '@/components/BloodSugarLogger';
 import GlucoseInsights from '@/components/GlucoseInsights';
@@ -72,6 +73,18 @@ export default function Index() {
   const [showBloodSugarLogger, setShowBloodSugarLogger] = useState(false);
   const [recentGlucoseLogs, setRecentGlucoseLogs] = useState<GlucoseLog[]>([]);
   const [latestGlucose, setLatestGlucose] = useState<GlucoseLog | null>(null);
+
+  // Debug effect to track recentGlucoseLogs changes
+  useEffect(() => {
+    console.log('recentGlucoseLogs state changed:', recentGlucoseLogs.length, 'logs');
+    console.log('recentGlucoseLogs data:', recentGlucoseLogs);
+  }, [recentGlucoseLogs]);
+
+  // Debug effect to track latestGlucose changes
+  useEffect(() => {
+    console.log('latestGlucose state changed:', latestGlucose?.glucose_value || 'null');
+    console.log('latestGlucose data:', latestGlucose);
+  }, [latestGlucose]);
   
   // Diabetes features state
   const [showEmergency, setShowEmergency] = useState(false);
@@ -314,16 +327,96 @@ export default function Index() {
     }
   };
 
-  // Load glucose data when logger is closed
-  const handleGlucoseLogged = async (log: GlucoseLog) => {
-    setLatestGlucose(log);
+  // Function to refresh glucose data and planner items
+  const refreshGlucoseData = async () => {
     try {
+      console.log('Refreshing glucose data...');
       const glucoseLogs = await getGlucoseLogs(5);
-      setRecentGlucoseLogs(glucoseLogs);
+      console.log('Glucose logs loaded:', glucoseLogs.length, 'logs');
+      console.log('Glucose logs data:', glucoseLogs);
+      
+      // Create new array reference to force re-render
+      setRecentGlucoseLogs([...glucoseLogs]);
+      console.log('Recent glucose logs state updated');
+      
+      if (glucoseLogs.length > 0) {
+        // Create new object reference to force re-render
+        const latest = { ...glucoseLogs[0] };
+        setLatestGlucose(latest);
+        console.log('Latest glucose set to:', latest.glucose_value);
+        console.log('Latest glucose full object:', latest);
+      } else {
+        console.log('No glucose logs found, setting latest to null');
+        setLatestGlucose(null);
+      }
+
+      // Also refresh planner items
+      console.log('Refreshing planner items...');
+      const today = new Date().toISOString().split('T')[0];
+      const items = await getPlannerItems(today);
+      
+      // Convert planner items to reminder format
+      const reminders = items
+        .filter(item => !item.completed) // Only show uncompleted items
+        .slice(0, 5) // Limit to 5 reminders
+        .map(item => ({
+          icon: getTypeIcon(item.item_type),
+          text: item.title,
+          time: item.scheduled_time ? formatTime(item.scheduled_time) : undefined,
+          id: item.id,
+          item_type: item.item_type,
+          priority: item.priority,
+        }));
+      
+      setPlannerReminders(reminders);
+      console.log('Planner items refreshed:', reminders.length, 'reminders');
     } catch (error) {
       console.error('Error refreshing glucose logs:', error);
     }
   };
+
+  // Load glucose data when logger is closed
+  const handleGlucoseLogged = async (log: GlucoseLog) => {
+    console.log('handleGlucoseLogged called with:', log);
+    
+    // Set the latest glucose immediately for instant UI update
+    setLatestGlucose({ ...log });
+    console.log('Latest glucose set immediately to:', log.glucose_value);
+    
+    // Update recent glucose logs immediately by adding the new log to the beginning
+    setRecentGlucoseLogs(prevLogs => {
+      const newLogs = [{ ...log }, ...prevLogs];
+      console.log('Recent glucose logs updated immediately:', newLogs.length, 'logs');
+      console.log('New logs array:', newLogs);
+      return newLogs;
+    });
+    
+    // Add a small delay to ensure database has been updated, then refresh to get any other changes
+    setTimeout(async () => {
+      console.log('Refreshing glucose data after delay...');
+      await refreshGlucoseData();
+      console.log('Data refresh completed in handleGlucoseLogged');
+    }, 500);
+  };
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Screen focused - refreshing glucose data');
+      refreshGlucoseData();
+    }, [])
+  );
+
+  // Also refresh when the blood sugar logger modal closes
+  const handleBloodSugarLoggerClose = () => {
+    console.log('Blood sugar logger modal closed - refreshing data');
+    setShowBloodSugarLogger(false);
+    // Add a small delay to ensure any pending database operations complete
+    setTimeout(() => {
+      refreshGlucoseData();
+    }, 200);
+  };
+
 
   useEffect(() => {
     const greeting = getGreeting(username);
@@ -358,12 +451,27 @@ export default function Index() {
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Blood Sugar Snapshot Section */}
         <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
+          <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Blood Sugar Snapshot</Text>
+            <TouchableOpacity onPress={refreshGlucoseData} style={styles.refreshButton}>
+              <Text style={[styles.refreshButtonText, { color: colors.seeMore }]}>🔄 Refresh</Text>
+            </TouchableOpacity>
+          </View>
           <BloodSugarSnapshot
+            key={`glucose-${latestGlucose?.id || 'none'}-${recentGlucoseLogs.length}-${recentGlucoseLogs.map(log => log.id).join(',')}`}
             glucose={latestGlucose?.glucose_value || 110}
             time={latestGlucose ? new Date(latestGlucose.measurement_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "8:00 AM"}
             context={latestGlucose?.context || "Fasting"}
-            data={recentGlucoseLogs.length > 0 ? recentGlucoseLogs.map(log => ({ value: log.glucose_value, color: getGlucoseColor(log.glucose_value) })) : bloodSugarData}
+            data={(() => {
+              const data = recentGlucoseLogs.length > 0 ? recentGlucoseLogs.map(log => ({ value: log.glucose_value, color: getGlucoseColor(log.glucose_value) })) : bloodSugarData;
+              console.log('BloodSugarSnapshot data being passed:', {
+                recentGlucoseLogsLength: recentGlucoseLogs.length,
+                recentGlucoseLogs: recentGlucoseLogs,
+                data: data,
+                latestGlucose: latestGlucose
+              });
+              return data;
+            })()}
           />
         </View>
 
@@ -416,7 +524,7 @@ export default function Index() {
               label="Insights"
               backgroundColor="#4caf50"
               textColor="#fff"
-              onPress={() => alert('Detailed Insights')}
+              onPress={() => router.push('/insights')}
               style={styles.diabetesActionBtn}
             />
           </View>
@@ -426,7 +534,7 @@ export default function Index() {
         <View style={[styles.sectionCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
           <TouchableOpacity
             style={styles.recipeFinderButton}
-            onPress={() => router.push('/recipe-finder')}
+            onPress={() => router.push('/(tabs)/recipe-finder')}
           >
             <Text style={[styles.recipeFinderText, { color: colors.text }]}>
               🍽️ Recipe Finder
@@ -531,7 +639,7 @@ export default function Index() {
       {/* Blood Sugar Logger Modal */}
       <BloodSugarLogger
         visible={showBloodSugarLogger}
-        onClose={() => setShowBloodSugarLogger(false)}
+        onClose={handleBloodSugarLoggerClose}
         onLogSuccess={handleGlucoseLogged}
         isDark={false}
       />
@@ -582,8 +690,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     alignItems: 'center',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     elevation: 4,
     borderWidth: 1,
   },
@@ -599,9 +706,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
     elevation: 2,
   },
   themeToggleText: {
@@ -614,9 +719,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
     elevation: 2,
   },
   logoutText: {
@@ -650,8 +753,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingVertical: 16,
     paddingHorizontal: 12,
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
     elevation: 3,
     borderWidth: 1,
   },
@@ -720,6 +822,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   seeMore: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  refreshButton: {
+    padding: 8,
+  },
+  refreshButtonText: {
     fontSize: 14,
     fontWeight: '600',
   },

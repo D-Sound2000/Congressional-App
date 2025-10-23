@@ -1,13 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Modal,
   ScrollView,
-  Alert,
-  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -28,7 +24,6 @@ const scenarios = [
       'Eat a snack after blood sugar normalizes'
     ],
     warning: 'Blood sugar below 70 mg/dL',
-    emergencyNum: '911',
     color: '#f44336'
   },
   {
@@ -43,7 +38,6 @@ const scenarios = [
       'Contact doctor if symptoms worsen'
     ],
     warning: 'Blood sugar above 250 mg/dL',
-    emergencyNum: '911',
     color: '#ff9800'
   },
   {
@@ -58,7 +52,6 @@ const scenarios = [
       'Call emergency services immediately'
     ],
     warning: 'Blood sugar >250 mg/dL with ketones',
-    emergencyNum: '911',
     color: '#d32f2f'
   },
   {
@@ -73,7 +66,6 @@ const scenarios = [
       'Stay with them until help arrives'
     ],
     warning: 'Person is unconscious or having seizures',
-    emergencyNum: '911',
     color: '#b71c1c'
   }
 ];
@@ -87,30 +79,7 @@ const contacts = [
 ];
 
 export default function DiabetesEmergency({ isDark = false }: DiabetesEmergencyProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
 
-  const makeCall = (num: string) => {
-    Alert.alert(
-      'Emergency Call',
-      `Calling ${num}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Call', 
-          onPress: () => {
-            if (num === '911') {
-              Linking.openURL('tel:911');
-            } else if (num.startsWith('1-800')) {
-              Linking.openURL(`tel:${num.replace(/-/g, '')}`);
-            } else {
-              Alert.alert('Call', `Please call: ${num}`);
-            }
-          }
-        }
-      ]
-    );
-  };
 
   const ScenarioCard = ({ scenario }: any) => (
     <View key={scenario.id} style={styles.card}>
@@ -149,15 +118,6 @@ export default function DiabetesEmergency({ isDark = false }: DiabetesEmergencyP
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.callBtn, { backgroundColor: scenario.color }]}
-          onPress={() => makeCall(scenario.emergencyNum)}
-        >
-          <Ionicons name="call" size={20} color="#fff" />
-          <Text style={styles.callBtnText}>
-            Call {scenario.emergencyNum}
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -186,13 +146,12 @@ export default function DiabetesEmergency({ isDark = false }: DiabetesEmergencyP
           </Text>
           
           {contacts.map((c, i) => (
-            <TouchableOpacity
+            <View
               key={i}
               style={[
                 styles.contactItem,
                 { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }
               ]}
-              onPress={() => makeCall(c.number)}
             >
               <View style={styles.contactLeft}>
                 <Text style={[styles.contactTitle, { color: isDark ? '#fff' : '#333' }]}>
@@ -210,48 +169,8 @@ export default function DiabetesEmergency({ isDark = false }: DiabetesEmergencyP
                   {c.type.toUpperCase()}
                 </Text>
               </View>
-            </TouchableOpacity>
+            </View>
           ))}
-        </View>
-
-        <View style={styles.quickSection}>
-          <Text style={[styles.header, { color: isDark ? '#fff' : '#333' }]}>
-            Quick Actions
-          </Text>
-          
-          <View style={styles.btnGrid}>
-            <TouchableOpacity
-              style={[styles.quickBtn, { backgroundColor: '#f44336' }]}
-              onPress={() => makeCall('911')}
-            >
-              <Ionicons name="call" size={24} color="#fff" />
-              <Text style={styles.quickTxt}>Call 911</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.quickBtn, { backgroundColor: '#ff9800' }]}
-              onPress={() => Alert.alert('Glucose Check', 'Check your blood sugar immediately')}
-            >
-              <Ionicons name="pulse" size={24} color="#fff" />
-              <Text style={styles.quickTxt}>Check Glucose</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.quickBtn, { backgroundColor: '#4caf50' }]}
-              onPress={() => Alert.alert('Glucagon', 'If you have glucagon available, use it as directed')}
-            >
-              <Ionicons name="medical" size={24} color="#fff" />
-              <Text style={styles.quickTxt}>Glucagon</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.quickBtn, { backgroundColor: '#2196f3' }]}
-              onPress={() => Alert.alert('Doctor', 'Contact your doctor immediately')}
-            >
-              <Ionicons name="person" size={24} color="#fff" />
-              <Text style={styles.quickTxt}>Call Doctor</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View style={[styles.notes, { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }]}>
@@ -364,20 +283,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  callBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  callBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
   contactArea: {
     marginTop: 24,
   },
@@ -408,29 +313,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
-  },
-  quickSection: {
-    marginTop: 24,
-  },
-  btnGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  quickBtn: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  quickTxt: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginTop: 8,
-    textAlign: 'center',
   },
   notes: {
     padding: 16,
