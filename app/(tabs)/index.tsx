@@ -17,20 +17,16 @@ import { getGlucoseLogs, GlucoseLog } from '@/lib/mealPlannerService';
 import { getPlannerItems, formatTime, getTypeIcon } from '@/lib/plannerService';
 import { getSmartRecommendations, SmartRecipe } from '@/lib/smartRecommendationsService';
 
-// Mock data for the blood sugar snapshot graph - placeholder until we get real data
 const bloodSugarData = [
-  { value: 110, color: '#388e3c' }, // healthy
-  { value: 98, color: '#388e3c' }, // healthy
-  { value: 120, color: '#e65100' }, // high
-  { value: 90, color: '#fbc02d' }, // low
-  { value: 105, color: '#388e3c' }, // healthy
-  { value: 112, color: '#388e3c' }, // healthy
-  { value: 108, color: '#388e3c' }, // healthy
+  { value: 110, color: '#388e3c' },
+  { value: 98, color: '#388e3c' },
+  { value: 120, color: '#e65100' },
+  { value: 90, color: '#fbc02d' },
+  { value: 105, color: '#388e3c' },
+  { value: 112, color: '#388e3c' },
+  { value: 108, color: '#388e3c' },
 ];
 
-// Smart recipe recommendations will be loaded dynamically
-
-// Mock data for reminders (fallback)
 const fallbackReminders = [
   { icon: '💊', text: 'Take Metformin', time: '6:00 PM' },
   { icon: '🍽️', text: 'Eat a light dinner', time: 'before 8:00 PM' },
@@ -64,33 +60,15 @@ export default function Index() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
   
-  // State for smart recipe recommendations - this took forever to get working
   const [smartRecipes, setSmartRecipes] = useState<SmartRecipe[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(false);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
-
-  // Blood sugar logging state
   const [showBloodSugarLogger, setShowBloodSugarLogger] = useState(false);
   const [recentGlucoseLogs, setRecentGlucoseLogs] = useState<GlucoseLog[]>([]);
   const [latestGlucose, setLatestGlucose] = useState<GlucoseLog | null>(null);
-
-  // Debug effect to track recentGlucoseLogs changes
-  useEffect(() => {
-    console.log('recentGlucoseLogs state changed:', recentGlucoseLogs.length, 'logs');
-    console.log('recentGlucoseLogs data:', recentGlucoseLogs);
-  }, [recentGlucoseLogs]);
-
-  // Debug effect to track latestGlucose changes
-  useEffect(() => {
-    console.log('latestGlucose state changed:', latestGlucose?.glucose_value || 'null');
-    console.log('latestGlucose data:', latestGlucose);
-  }, [latestGlucose]);
-  
-  // Diabetes features state
   const [showEmergency, setShowEmergency] = useState(false);
   const [showEducation, setShowEducation] = useState(false);
 
-  // Fixed light theme colors
   const colors = {
     background: '#f6f8fa',
     card: '#fff',
@@ -105,8 +83,6 @@ export default function Index() {
     quickAction2: '#fce4ec',
     quickAction3: '#e8f5e9',
   };
-
-  // Fetch user profile and glucose data
   useEffect(() => {
     async function fetchUserData() {
       try {
@@ -122,7 +98,6 @@ export default function Index() {
             setUsername(data.username);
           }
 
-          // Load recent glucose logs
           try {
             const glucoseLogs = await getGlucoseLogs(5);
             setRecentGlucoseLogs(glucoseLogs);
@@ -131,18 +106,15 @@ export default function Index() {
             }
           } catch (glucoseError) {
             console.error('Error loading glucose logs:', glucoseError);
-            // Don't fail the entire load if glucose logs fail
           }
 
-          // Load today's planner reminders
           try {
             const today = new Date().toISOString().split('T')[0];
             const items = await getPlannerItems(today);
             
-            // Convert planner items to reminder format
             const reminders = items
-              .filter(item => !item.completed) // Only show uncompleted items
-              .slice(0, 5) // Limit to 5 reminders
+              .filter(item => !item.completed)
+              .slice(0, 5)
               .map(item => ({
                 icon: getTypeIcon(item.item_type),
                 text: item.title,
@@ -155,14 +127,10 @@ export default function Index() {
             setPlannerReminders(reminders);
           } catch (reminderError) {
             console.error('Error loading planner reminders:', reminderError);
-            // Fallback to mock data on error
             setPlannerReminders(fallbackReminders);
           }
           
-          // Load smart recipe recommendations (3 recipes)
           loadSmartRecipes();
-          
-          // Load favorite recipe IDs
           loadFavorites();
         }
       } catch (error) {
@@ -175,48 +143,37 @@ export default function Index() {
     fetchUserData();
   }, []);
 
-  // Load smart recipe recommendations - this was tricky to get personalized
   const loadSmartRecipes = async () => {
     try {
       setLoadingRecipes(true);
-      const recommendations = await getSmartRecommendations(3); // Get 3 new recipes each time
+      const recommendations = await getSmartRecommendations(3);
       setSmartRecipes(recommendations);
     } catch (recipeError) {
       console.error('Error loading smart recommendations:', recipeError);
-      // Will use fallback in the service - API can be flaky sometimes
     } finally {
       setLoadingRecipes(false);
     }
   };
 
-  // Load favorite recipe IDs
   const loadFavorites = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('No user found when loading favorites');
-        return;
-      }
+      if (!user) return;
 
       const { data, error } = await supabase
         .from('favorite_recipes')
         .select('recipe_id, recipe_data')
         .eq('user_id', user.id);
       
-      console.log('Loading favorites - data:', data, 'error:', error);
-      
       if (error) {
-        console.error('Error loading favorites from DB:', error);
+        console.error('Error loading favorites:', error);
         return;
       }
       
       if (data && data.length > 0) {
-        // Get IDs from both recipe_id field and recipe_data
         const ids = data.map(item => item.recipe_id || item.recipe_data?.id).filter(id => id != null);
-        console.log('Loaded favorite IDs:', ids);
         setFavoriteRecipeIds(ids);
       } else {
-        console.log('No favorites found');
         setFavoriteRecipeIds([]);
       }
     } catch (error) {
@@ -224,33 +181,18 @@ export default function Index() {
     }
   };
 
-  // Handle adding/removing from favorites
   const toggleFavorite = async (recipe: SmartRecipe) => {
     try {
-      console.log('=== Toggle Favorite Clicked ===');
-      console.log('Recipe ID:', recipe.id);
-      console.log('Recipe Title:', recipe.title);
-      console.log('Current favoriteRecipeIds:', favoriteRecipeIds);
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('No user found');
         Alert.alert('Sign In Required', 'Please sign in to save favorites');
         return;
       }
-      
-      console.log('User ID:', user.id);
 
       const isFavorite = favoriteRecipeIds.includes(recipe.id);
-      console.log('Is currently favorited:', isFavorite);
 
       if (isFavorite) {
-        // Remove from favorites
-        console.log('Removing from favorites...');
-        
-        // Update UI immediately
         const newIds = favoriteRecipeIds.filter(id => id !== recipe.id);
-        console.log('New favorite IDs after removal:', newIds);
         setFavoriteRecipeIds(newIds);
         
         const { error } = await supabase
@@ -261,19 +203,11 @@ export default function Index() {
 
         if (error) {
           console.error('Database error removing favorite:', error);
-          // Revert on error
           setFavoriteRecipeIds(prev => [...prev, recipe.id]);
           Alert.alert('Error', 'Failed to remove favorite: ' + error.message);
-        } else {
-          console.log('✅ Successfully removed from favorites in database');
         }
       } else {
-        // Add to favorites
-        console.log('Adding to favorites...');
-        
-        // Update UI immediately
         const newIds = [...favoriteRecipeIds, recipe.id];
-        console.log('New favorite IDs after adding:', newIds);
         setFavoriteRecipeIds(newIds);
         
         const recipeData = {
@@ -288,77 +222,51 @@ export default function Index() {
             calories: recipe.calories,
             carbs: parseFloat(recipe.carbs.replace('g carbs', '') || '0'),
             protein: recipe.protein,
-            fat: recipe.protein, // Using protein as placeholder for fat
+            fat: recipe.protein,
             servings: 4,
           },
         };
         
-        console.log('Inserting recipe data:', recipeData);
-        
-        const { error, data } = await supabase
+        const { error } = await supabase
           .from('favorite_recipes')
           .insert(recipeData)
           .select();
 
-        console.log('Insert result - error:', error, 'data:', data);
-
         if (error) {
           console.error('Database error adding favorite:', error);
-          // Revert on error
           setFavoriteRecipeIds(prev => prev.filter(id => id !== recipe.id));
           
-          // Check if it's a duplicate error
           if (error.message.includes('duplicate') || error.code === '23505') {
-            console.log('Recipe already in favorites (duplicate)');
-            // Keep it in the UI since it's actually there
             setFavoriteRecipeIds(prev => [...prev, recipe.id]);
           } else {
             Alert.alert('Error', 'Failed to save favorite: ' + error.message);
           }
-        } else {
-          console.log('✅ Successfully added to favorites in database');
         }
       }
-      
-      console.log('=== Toggle Favorite Complete ===');
     } catch (error: any) {
       console.error('Exception in toggleFavorite:', error);
       Alert.alert('Error', 'Failed to save favorite: ' + (error?.message || 'Unknown error'));
     }
   };
 
-  // Function to refresh glucose data and planner items
   const refreshGlucoseData = async () => {
     try {
-      console.log('Refreshing glucose data...');
       const glucoseLogs = await getGlucoseLogs(5);
-      console.log('Glucose logs loaded:', glucoseLogs.length, 'logs');
-      console.log('Glucose logs data:', glucoseLogs);
-      
-      // Create new array reference to force re-render
       setRecentGlucoseLogs([...glucoseLogs]);
-      console.log('Recent glucose logs state updated');
       
       if (glucoseLogs.length > 0) {
-        // Create new object reference to force re-render
         const latest = { ...glucoseLogs[0] };
         setLatestGlucose(latest);
-        console.log('Latest glucose set to:', latest.glucose_value);
-        console.log('Latest glucose full object:', latest);
       } else {
-        console.log('No glucose logs found, setting latest to null');
         setLatestGlucose(null);
       }
 
-      // Also refresh planner items
-      console.log('Refreshing planner items...');
       const today = new Date().toISOString().split('T')[0];
       const items = await getPlannerItems(today);
       
-      // Convert planner items to reminder format
       const reminders = items
-        .filter(item => !item.completed) // Only show uncompleted items
-        .slice(0, 5) // Limit to 5 reminders
+        .filter(item => !item.completed)
+        .slice(0, 5)
         .map(item => ({
           icon: getTypeIcon(item.item_type),
           text: item.title,
@@ -369,49 +277,32 @@ export default function Index() {
         }));
       
       setPlannerReminders(reminders);
-      console.log('Planner items refreshed:', reminders.length, 'reminders');
     } catch (error) {
       console.error('Error refreshing glucose logs:', error);
     }
   };
 
-  // Load glucose data when logger is closed
   const handleGlucoseLogged = async (log: GlucoseLog) => {
-    console.log('handleGlucoseLogged called with:', log);
-    
-    // Set the latest glucose immediately for instant UI update
     setLatestGlucose({ ...log });
-    console.log('Latest glucose set immediately to:', log.glucose_value);
     
-    // Update recent glucose logs immediately by adding the new log to the beginning
     setRecentGlucoseLogs(prevLogs => {
       const newLogs = [{ ...log }, ...prevLogs];
-      console.log('Recent glucose logs updated immediately:', newLogs.length, 'logs');
-      console.log('New logs array:', newLogs);
       return newLogs;
     });
     
-    // Add a small delay to ensure database has been updated, then refresh to get any other changes
     setTimeout(async () => {
-      console.log('Refreshing glucose data after delay...');
       await refreshGlucoseData();
-      console.log('Data refresh completed in handleGlucoseLogged');
     }, 500);
   };
 
-  // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      console.log('Screen focused - refreshing glucose data');
       refreshGlucoseData();
     }, [])
   );
 
-  // Also refresh when the blood sugar logger modal closes
   const handleBloodSugarLoggerClose = () => {
-    console.log('Blood sugar logger modal closed - refreshing data');
     setShowBloodSugarLogger(false);
-    // Add a small delay to ensure any pending database operations complete
     setTimeout(() => {
       refreshGlucoseData();
     }, 200);
@@ -432,7 +323,6 @@ export default function Index() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}> 
-      {/* Combined App Title and Greeting Card */}
       <View style={[styles.greetingCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
         <Text style={[styles.appTitle, { color: colors.title }]}>DiaBite</Text>
         <Text style={[styles.greetingText, { color: colors.greeting }]}>{typedGreeting}</Text>
@@ -449,7 +339,6 @@ export default function Index() {
         </View>
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
-        {/* Blood Sugar Snapshot Section */}
         <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
           <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Blood Sugar Snapshot</Text>
@@ -462,25 +351,12 @@ export default function Index() {
             glucose={latestGlucose?.glucose_value || 110}
             time={latestGlucose ? new Date(latestGlucose.measurement_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "8:00 AM"}
             context={latestGlucose?.context || "Fasting"}
-            data={(() => {
-              const data = recentGlucoseLogs.length > 0 ? recentGlucoseLogs.map(log => ({ value: log.glucose_value, color: getGlucoseColor(log.glucose_value) })) : bloodSugarData;
-              console.log('BloodSugarSnapshot data being passed:', {
-                recentGlucoseLogsLength: recentGlucoseLogs.length,
-                recentGlucoseLogs: recentGlucoseLogs,
-                data: data,
-                latestGlucose: latestGlucose
-              });
-              return data;
-            })()}
+            data={recentGlucoseLogs.length > 0 ? recentGlucoseLogs.map(log => ({ value: log.glucose_value, color: getGlucoseColor(log.glucose_value) })) : bloodSugarData}
           />
         </View>
 
-        {/* Glucose Insights */}
         <GlucoseInsights isDark={false} />
-
-        {/* Medication Reminders */}
         <MedicationReminder isDark={false} />
-        {/* Quick Action Buttons */}
         <View style={[styles.sectionCard, { backgroundColor: colors.card }]}> 
           <View style={styles.quickActionsRow}>
             <QuickActionButton
@@ -501,7 +377,6 @@ export default function Index() {
             />
           </View>
           
-          {/* Diabetes-Specific Actions */}
           <View style={styles.diabetesActionsRow}>
             <QuickActionButton
               icon="medical-outline"
@@ -530,7 +405,6 @@ export default function Index() {
           </View>
         </View>
         
-        {/* Recipe Finder Button */}
         <View style={[styles.sectionCard, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
           <TouchableOpacity
             style={styles.recipeFinderButton}
@@ -544,7 +418,6 @@ export default function Index() {
             </Text>
           </TouchableOpacity>
         </View>
-        {/* Today's Smart Picks (Recipe Cards) */}
         <View style={styles.sectionHeaderRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>
@@ -580,8 +453,6 @@ export default function Index() {
                 carbs={item.carbs}
                 badge={item.badge}
                 onPress={() => {
-                  // Navigate to recipe finder with this recipe ID
-                  console.log('Opening recipe:', item.title, 'ID:', item.id);
                   router.push({
                     pathname: '/(tabs)/recipe-finder',
                     params: { recipeId: item.id.toString() }
@@ -603,7 +474,6 @@ export default function Index() {
             </Text>
           </View>
         )}
-        {/* Reminders Section */}
         <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Today's Reminders</Text>
@@ -633,10 +503,8 @@ export default function Index() {
           </View>
         </View>
       </ScrollView>
-      {/* Floating Emergency Button */}
       <FloatingEmergencyButton onPress={() => setShowEmergency(true)} />
       
-      {/* Blood Sugar Logger Modal */}
       <BloodSugarLogger
         visible={showBloodSugarLogger}
         onClose={handleBloodSugarLoggerClose}
@@ -644,7 +512,6 @@ export default function Index() {
         isDark={false}
       />
       
-      {/* Diabetes Emergency Modal */}
       {showEmergency && (
         <View style={styles.modalOverlay}>
           <DiabetesEmergency 
@@ -659,7 +526,6 @@ export default function Index() {
         </View>
       )}
       
-      {/* Diabetes Education Modal */}
       {showEducation && (
         <View style={styles.modalOverlay}>
           <DiabetesEducation 
@@ -677,7 +543,6 @@ export default function Index() {
   );
 }
 
-// Styles for the home screen layout
 const styles = StyleSheet.create({
   container: {
     flex: 1,

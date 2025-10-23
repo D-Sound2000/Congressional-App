@@ -1098,33 +1098,6 @@ export default function DiabetesEducation({ isDark = false }: DiabetesEducationP
           ))}
         </View>
 
-        <View style={[styles.resourcesArea, { backgroundColor: isDark ? '#232b3a' : '#fff' }]}>
-          <Text style={[styles.header, { color: isDark ? '#fff' : '#333' }]}>
-            Quick Resources
-          </Text>
-          
-          <View style={styles.resGrid}>
-            <TouchableOpacity style={[styles.resCard, { backgroundColor: '#e3f2fd' }]}>
-              <Ionicons name="calculator" size={24} color="#1976d2" />
-              <Text style={styles.resTxt}>Carb Calculator</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.resCard, { backgroundColor: '#e8f5e9' }]}>
-              <Ionicons name="restaurant" size={24} color="#4caf50" />
-              <Text style={styles.resTxt}>Food Database</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.resCard, { backgroundColor: '#fff3e0' }]}>
-              <Ionicons name="fitness" size={24} color="#ff9800" />
-              <Text style={styles.resTxt}>Exercise Guide</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.resCard, { backgroundColor: '#fce4ec' }]}>
-              <Ionicons name="call" size={24} color="#e91e63" />
-              <Text style={styles.resTxt}>Emergency Info</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </ScrollView>
 
       {activeArticle && (
@@ -1306,33 +1279,6 @@ const styles = StyleSheet.create({
   disclaimerTxt: {
     fontSize: 12,
     fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  resourcesArea: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  resGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  resCard: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  resTxt: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 8,
     textAlign: 'center',
   },
 });

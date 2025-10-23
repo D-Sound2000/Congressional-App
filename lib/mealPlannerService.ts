@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
 import { getUserProfile } from './userProfileService';
 
-// Types for our meal planner data - this got pretty complex
 export interface Recipe {
   id: number;
   name: string;
@@ -70,7 +69,6 @@ export interface UserPreferences {
   updated_at: string;
 }
 
-// Recipe Management Functions
 export const getRecipes = async (category?: string, searchQuery?: string): Promise<Recipe[]> => {
   try {
     let query = supabase
@@ -140,13 +138,11 @@ export const saveRecipe = async (recipeData: Partial<Recipe>): Promise<Recipe> =
   }
 };
 
-// Meal Planning Functions
 export const getMealPlan = async (date: string): Promise<MealPlan | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // First get the meal plan
     const { data: mealPlan, error: mealPlanError } = await supabase
       .from('meal_plans')
       .select('*')
@@ -154,7 +150,7 @@ export const getMealPlan = async (date: string): Promise<MealPlan | null> => {
       .eq('plan_date', date)
       .single();
 
-    if (mealPlanError && mealPlanError.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (mealPlanError && mealPlanError.code !== 'PGRST116') {
       console.error('Error fetching meal plan:', mealPlanError);
       throw mealPlanError;
     }
@@ -162,8 +158,6 @@ export const getMealPlan = async (date: string): Promise<MealPlan | null> => {
     if (!mealPlan) {
       return null;
     }
-
-    // Now fetch the related recipes
     const recipeIds = [
       mealPlan.breakfast_recipe_id,
       mealPlan.lunch_recipe_id,
@@ -184,8 +178,6 @@ export const getMealPlan = async (date: string): Promise<MealPlan | null> => {
 
       recipes = recipesData || [];
     }
-
-    // Map recipes back to the meal plan
     const breakfastRecipe = recipes.find(r => r.id === mealPlan.breakfast_recipe_id);
     const lunchRecipe = recipes.find(r => r.id === mealPlan.lunch_recipe_id);
     const dinnerRecipe = recipes.find(r => r.id === mealPlan.dinner_recipe_id);
@@ -223,7 +215,6 @@ export const saveMealPlan = async (mealPlan: Partial<MealPlan>): Promise<MealPla
       throw error;
     }
 
-    // Now fetch the related recipes
     const recipeIds = [
       data.breakfast_recipe_id,
       data.lunch_recipe_id,
@@ -239,13 +230,10 @@ export const saveMealPlan = async (mealPlan: Partial<MealPlan>): Promise<MealPla
 
       if (recipesError) {
         console.error('Error fetching recipes:', recipesError);
-        // Don't throw here, just return without recipes
       } else {
         recipes = recipesData || [];
       }
     }
-
-    // Map recipes back to the meal plan
     const breakfastRecipe = recipes.find(r => r.id === data.breakfast_recipe_id);
     const lunchRecipe = recipes.find(r => r.id === data.lunch_recipe_id);
     const dinnerRecipe = recipes.find(r => r.id === data.dinner_recipe_id);
@@ -271,18 +259,15 @@ export const updateMealInPlan = async (
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // First, get or create the meal plan for this date
     let mealPlan = await getMealPlan(date);
     
     if (!mealPlan) {
-      // Create new meal plan
       const newPlan = await saveMealPlan({
         plan_date: date,
         [mealType + '_recipe_id']: recipeId,
       });
       return newPlan;
     } else {
-      // Update existing meal plan
       const updateData = {
         [mealType + '_recipe_id']: recipeId,
       };
@@ -299,7 +284,6 @@ export const updateMealInPlan = async (
         throw error;
       }
 
-      // Now fetch the related recipes
       const recipeIds = [
         data.breakfast_recipe_id,
         data.lunch_recipe_id,
@@ -315,13 +299,10 @@ export const updateMealInPlan = async (
 
         if (recipesError) {
           console.error('Error fetching recipes:', recipesError);
-          // Don't throw here, just return without recipes
         } else {
           recipes = recipesData || [];
         }
       }
-
-      // Map recipes back to the meal plan
       const breakfastRecipe = recipes.find(r => r.id === data.breakfast_recipe_id);
       const lunchRecipe = recipes.find(r => r.id === data.lunch_recipe_id);
       const dinnerRecipe = recipes.find(r => r.id === data.dinner_recipe_id);
@@ -341,7 +322,6 @@ export const updateMealInPlan = async (
   }
 };
 
-// Glucose Logging Functions
 export const logGlucose = async (glucoseValue: number, context?: string, notes?: string): Promise<GlucoseLog> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -398,7 +378,6 @@ export const getGlucoseLogs = async (days: number = 7): Promise<GlucoseLog[]> =>
   }
 };
 
-// User Preferences Functions
 export const getUserPreferences = async (): Promise<UserPreferences | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -410,7 +389,7 @@ export const getUserPreferences = async (): Promise<UserPreferences | null> => {
       .eq('user_id', user.id)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (error && error.code !== 'PGRST116') {
       console.error('Error fetching user preferences:', error);
       throw error;
     }
@@ -448,7 +427,6 @@ export const saveUserPreferences = async (preferences: Partial<UserPreferences>)
   }
 };
 
-// AI Chef Functions
 export const getPersonalizedRecipes = async (
   mealType: 'breakfast' | 'lunch' | 'dinner',
   limit: number = 10
@@ -458,75 +436,56 @@ export const getPersonalizedRecipes = async (
     const userProfile = await getUserProfile();
     const glucoseLogs = await getGlucoseLogs(7);
     
-    // Calculate glucose statistics
     const glucoseStats = calculateGlucoseStats(glucoseLogs);
-    
-    // Build query based on preferences, glucose trends, and diabetes type
     let query = supabase
       .from('recipes')
       .select('*')
       .eq('category', mealType);
 
-    // Apply diabetes type specific filtering
     if (userProfile?.diabetes_type === 'type1') {
-      // Type 1: Focus on carb counting and insulin timing
       query = query.lte('carbs', 45).gte('protein', 10);
     } else if (userProfile?.diabetes_type === 'type2') {
-      // Type 2: Focus on low-carb and weight management
       query = query.lte('carbs', 35).gte('fiber', 3);
     } else if (userProfile?.diabetes_type === 'gestational') {
-      // Gestational: Strict carb control
       query = query.lte('carbs', 30).gte('protein', 15);
     } else if (userProfile?.diabetes_type === 'prediabetes') {
-      // Prediabetes: Prevent progression
       query = query.lte('carbs', 40).gte('fiber', 4);
     }
 
-    // Apply glucose-based filtering with more sophisticated logic
     if (glucoseStats.avgGlucose > 160) {
-      // Very high glucose - strict low carb
       query = query.lte('carbs', 20).gte('protein', 15);
     } else if (glucoseStats.avgGlucose > 140) {
-      // High glucose - low carb options
       query = query.lte('carbs', 30);
     } else if (glucoseStats.avgGlucose < 70) {
-      // Low glucose - can handle more carbs, but balanced
       query = query.lte('carbs', 45).gte('carbs', 20);
     } else {
-      // Normal glucose - balanced options
       query = query.lte('carbs', 40);
     }
-
-    // Apply time-based glucose patterns
     const recentGlucose = glucoseLogs.filter(log => {
       const logTime = new Date(log.measurement_time);
       const now = new Date();
-      return (now.getTime() - logTime.getTime()) < 24 * 60 * 60 * 1000; // Last 24 hours
+      return (now.getTime() - logTime.getTime()) < 24 * 60 * 60 * 1000;
     });
 
     if (recentGlucose.length > 0) {
       const recentAvg = recentGlucose.reduce((sum, log) => sum + log.glucose_value, 0) / recentGlucose.length;
       
-      // If glucose is trending up, be more restrictive
       if (recentAvg > glucoseStats.avgGlucose + 20) {
         query = query.lte('carbs', 25);
       }
     }
 
-    // Apply dietary restrictions
     if (preferences?.dietary_restrictions?.length) {
       if (preferences.meal_complexity) {
         query = query.eq('difficulty', preferences.meal_complexity);
       }
     }
 
-    // Apply calorie limits
     if (preferences?.max_daily_calories) {
       const maxMealCalories = Math.floor(preferences.max_daily_calories * 0.4);
       query = query.lte('calories', maxMealCalories);
     }
 
-    // Order by relevance (lower carbs for high glucose, balanced for normal)
     if (glucoseStats.avgGlucose > 140) {
       query = query.order('carbs', { ascending: true });
     } else {
@@ -547,7 +506,6 @@ export const getPersonalizedRecipes = async (
   }
 };
 
-// Helper function to calculate glucose statistics
 const calculateGlucoseStats = (glucoseLogs: GlucoseLog[]) => {
   if (glucoseLogs.length === 0) {
     return {
@@ -561,11 +519,9 @@ const calculateGlucoseStats = (glucoseLogs: GlucoseLog[]) => {
   const values = glucoseLogs.map(log => log.glucose_value);
   const avgGlucose = values.reduce((sum, val) => sum + val, 0) / values.length;
   
-  // Calculate time in range (70-140 mg/dL)
   const inRange = values.filter(val => val >= 70 && val <= 140).length;
   const timeInRange = (inRange / values.length) * 100;
   
-  // Calculate trend
   const recent = values.slice(0, Math.min(3, values.length));
   const older = values.slice(-Math.min(3, values.length));
   const recentAvg = recent.reduce((sum, val) => sum + val, 0) / recent.length;
@@ -575,7 +531,6 @@ const calculateGlucoseStats = (glucoseLogs: GlucoseLog[]) => {
   if (recentAvg > olderAvg + 15) trend = 'rising';
   else if (recentAvg < olderAvg - 15) trend = 'falling';
   
-  // Count recent spikes (>180 mg/dL)
   const recentSpikes = values.filter(val => val > 180).length;
   
   return {
@@ -591,20 +546,15 @@ export const generateDayPlan = async (date: string): Promise<MealPlan> => {
     const preferences = await getUserPreferences();
     const glucoseLogs = await getGlucoseLogs(7);
     
-    // Get personalized recipes for each meal
     const [breakfastRecipes, lunchRecipes, dinnerRecipes] = await Promise.all([
       getPersonalizedRecipes('breakfast', 5),
       getPersonalizedRecipes('lunch', 5),
       getPersonalizedRecipes('dinner', 5),
     ]);
 
-    // Select recipes (for now, just pick the first one from each category)
-    // In a real implementation, this would use more sophisticated AI logic
     const selectedBreakfast = breakfastRecipes[0];
     const selectedLunch = lunchRecipes[0];
     const selectedDinner = dinnerRecipes[0];
-
-    // Calculate totals
     const totalCalories = (selectedBreakfast?.calories || 0) + 
                          (selectedLunch?.calories || 0) + 
                          (selectedDinner?.calories || 0);
@@ -616,8 +566,6 @@ export const generateDayPlan = async (date: string): Promise<MealPlan> => {
     const totalProtein = (selectedBreakfast?.protein || 0) + 
                         (selectedLunch?.protein || 0) + 
                         (selectedDinner?.protein || 0);
-
-    // Create the meal plan
     const mealPlan = await saveMealPlan({
       plan_date: date,
       breakfast_recipe_id: selectedBreakfast?.id,

@@ -1,7 +1,7 @@
--- COMPREHENSIVE FIX: Complete database cleanup for meal planner
--- Run this SQL in your Supabase SQL editor step by step
+-- Complete database cleanup for meal planner
+-- Run this SQL in your Supabase SQL editor
 
--- Step 1: Check what constraints exist
+-- Check existing constraints
 SELECT 
     tc.constraint_name, 
     tc.table_name, 
@@ -19,23 +19,22 @@ FROM
 WHERE tc.constraint_type = 'FOREIGN KEY' 
 AND tc.table_name='meal_plans';
 
--- Step 2: Drop ALL possible foreign key constraints (run each line separately)
+-- Drop foreign key constraints
 ALTER TABLE meal_plans DROP CONSTRAINT IF EXISTS meal_plans_breakfast_recipe_id_fkey;
 ALTER TABLE meal_plans DROP CONSTRAINT IF EXISTS meal_plans_lunch_recipe_id_fkey;
 ALTER TABLE meal_plans DROP CONSTRAINT IF EXISTS meal_plans_dinner_recipe_id_fkey;
 
--- Step 3: Drop any check constraints that might be interfering
+-- Drop check constraints
 ALTER TABLE meal_plans DROP CONSTRAINT IF EXISTS meal_plans_breakfast_recipe_id_check;
 ALTER TABLE meal_plans DROP CONSTRAINT IF EXISTS meal_plans_lunch_recipe_id_check;
 ALTER TABLE meal_plans DROP CONSTRAINT IF EXISTS meal_plans_dinner_recipe_id_check;
 
--- Step 4: Ensure RLS policies exist for recipes table
--- First drop existing policies if they exist
+-- Drop existing policies
 DROP POLICY IF EXISTS "Users can insert recipes" ON recipes;
 DROP POLICY IF EXISTS "Users can update recipes" ON recipes;
 DROP POLICY IF EXISTS "Users can delete recipes" ON recipes;
 
--- Then create new policies
+-- Create new policies
 CREATE POLICY "Users can insert recipes" ON recipes
   FOR INSERT WITH CHECK (true);
 
@@ -45,16 +44,15 @@ CREATE POLICY "Users can update recipes" ON recipes
 CREATE POLICY "Users can delete recipes" ON recipes
   FOR DELETE USING (true);
 
--- Step 5: Verify the recipes table allows inserts by testing
--- This should work without errors
+-- Test recipe insertion
 INSERT INTO recipes (id, name, description, category, difficulty, servings, calories, carbs, protein, fat, fiber, sugar, sodium, tags, ingredients, instructions)
-VALUES (999999, 'Test External Recipe', 'Test description', 'dinner', 'easy', 4, 300, 25, 15, 10, 5, 8, 400, ARRAY['test'], '[]', '[]')
+VALUES (999999, 'Test Recipe', 'Test description', 'dinner', 'easy', 4, 300, 25, 15, 10, 5, 8, 400, ARRAY['test'], '[]', '[]')
 ON CONFLICT (id) DO NOTHING;
 
--- Step 6: Clean up test data
+-- Clean up
 DELETE FROM recipes WHERE id = 999999;
 
--- Step 7: Verify constraints are gone
+-- Verify constraints are gone
 SELECT 
     tc.constraint_name, 
     tc.table_name, 

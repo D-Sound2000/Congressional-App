@@ -15,38 +15,31 @@ import { getGlucoseLogs, GlucoseLog } from '@/lib/mealPlannerService';
 import Svg, { Line, Circle, Text as SvgText, G, Path } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
-const GRAPH_WIDTH = width - 80; // Account for padding
+const GRAPH_WIDTH = width - 80;
 const GRAPH_HEIGHT = 200;
 
-// Glucose Graph Component
 const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h' | '7d' | '30d' }) => {
   if (data.length === 0) return null;
 
-  // Sort data by time (newest first, then reverse for graph)
   const sortedData = [...data].sort((a, b) => 
     new Date(a.measurement_time).getTime() - new Date(b.measurement_time).getTime()
   );
 
-  // Define target ranges
   const targetMin = 70;
   const targetMax = 140;
   const highThreshold = 200;
   const lowThreshold = 60;
 
-  // Calculate graph bounds
   const values = sortedData.map(log => log.glucose_value);
   const minValue = Math.min(...values, lowThreshold) - 10;
   const maxValue = Math.max(...values, highThreshold) + 10;
   const valueRange = maxValue - minValue;
-
-  // Calculate points for the line
   const points = sortedData.map((log, index) => {
     const x = sortedData.length === 1 ? GRAPH_WIDTH / 2 : (index / (sortedData.length - 1)) * GRAPH_WIDTH;
     const y = GRAPH_HEIGHT - ((log.glucose_value - minValue) / valueRange) * GRAPH_HEIGHT;
     return { x, y, value: log.glucose_value, time: log.measurement_time };
   });
 
-  // Create path for the line
   const pathData = points.length > 1 
     ? points.map((point, index) => 
         `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
@@ -54,11 +47,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
     : points.length === 1 
       ? `M ${points[0].x} ${points[0].y} L ${points[0].x} ${points[0].y}`
       : '';
-  
-  console.log('Graph points:', points);
-  console.log('Path data:', pathData);
-
-  // Format time labels
   const formatTimeLabel = (timestamp: string) => {
     const date = new Date(timestamp);
     if (timeRange === '24h') {
@@ -72,7 +60,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
       <Text style={styles.graphTitle}>Glucose Trend</Text>
       <View style={styles.graphWrapper}>
         <Svg width={GRAPH_WIDTH} height={GRAPH_HEIGHT + 40}>
-          {/* Target range background */}
           <G>
             <Line
               x1={0}
@@ -93,8 +80,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
               strokeDasharray="5,5"
             />
           </G>
-
-          {/* Main glucose line */}
           {points.length > 1 ? (
             <>
               <Path
@@ -103,7 +88,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
                 strokeWidth={3}
                 fill="none"
               />
-              {/* Fallback: Individual line segments */}
               {points.map((point, index) => {
                 if (index === 0) return null;
                 const prevPoint = points[index - 1];
@@ -130,8 +114,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
               strokeWidth={2}
             />
           ) : null}
-
-          {/* Data points */}
           {points.map((point, index) => (
             <Circle
               key={index}
@@ -144,7 +126,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
             />
           ))}
 
-          {/* Y-axis labels */}
           <SvgText x={-10} y={GRAPH_HEIGHT - ((targetMin - minValue) / valueRange) * GRAPH_HEIGHT + 5} fontSize="12" fill="#4caf50">
             {targetMin}
           </SvgText>
@@ -160,7 +141,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
         </Svg>
       </View>
       
-      {/* X-axis labels */}
       <View style={styles.xAxisLabels}>
         {points.filter((_, index) => index % Math.ceil(points.length / 5) === 0).map((point, index) => (
           <Text key={index} style={styles.xAxisLabel}>
@@ -168,8 +148,6 @@ const GlucoseGraph = ({ data, timeRange }: { data: GlucoseLog[], timeRange: '24h
           </Text>
         ))}
       </View>
-
-      {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: '#4caf50' }]} />
@@ -214,11 +192,9 @@ export default function InsightsPage() {
     const min = Math.min(...values);
     const max = Math.max(...values);
     
-    // Calculate time in range (70-140 mg/dL)
     const inRange = values.filter(val => val >= 70 && val <= 140).length;
     const timeInRange = (inRange / values.length) * 100;
 
-    // Calculate standard deviation for variability
     const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
     const stdDev = Math.sqrt(variance);
 
@@ -315,7 +291,7 @@ export default function InsightsPage() {
       });
     }
 
-    return recommendations.slice(0, 5); // Show top 5 recommendations
+    return recommendations.slice(0, 5);
   };
 
   const formatTime = (timestamp: string) => {
@@ -401,7 +377,6 @@ export default function InsightsPage() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
@@ -411,7 +386,6 @@ export default function InsightsPage() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Time Range Selector */}
         <View style={styles.timeRangeContainer}>
           <Text style={styles.sectionTitle}>Time Period</Text>
           <View style={styles.timeRangeSelector}>
@@ -434,8 +408,6 @@ export default function InsightsPage() {
             ))}
           </View>
         </View>
-
-        {/* Overview Stats */}
         {stats && (
           <View style={styles.overviewSection}>
             <Text style={styles.sectionTitle}>Overview</Text>
@@ -471,12 +443,10 @@ export default function InsightsPage() {
           </View>
         )}
 
-        {/* Glucose Trend Graph */}
         <View style={styles.graphSection}>
           <GlucoseGraph data={glucoseLogs} timeRange={timeRange} />
         </View>
 
-        {/* Trend Analysis */}
         <View style={styles.trendSection}>
           <Text style={styles.sectionTitle}>Trend Analysis</Text>
           <View style={styles.trendCard}>
@@ -494,7 +464,6 @@ export default function InsightsPage() {
           </View>
         </View>
 
-        {/* Recent Readings */}
         <View style={styles.readingsSection}>
           <Text style={styles.sectionTitle}>Recent Readings ({glucoseLogs.length})</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -518,8 +487,6 @@ export default function InsightsPage() {
             </View>
           </ScrollView>
         </View>
-
-        {/* Recommendations */}
         {recommendations.length > 0 && (
           <View style={styles.recommendationsSection}>
             <Text style={styles.sectionTitle}>Personalized Recommendations</Text>
@@ -545,7 +512,6 @@ export default function InsightsPage() {
           </View>
         )}
 
-        {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>

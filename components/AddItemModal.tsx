@@ -398,7 +398,7 @@ export default function AddItemModal({ isDark, selectedDate, onClose, onItemAdde
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Duration (minutes)</Text>
+            <Text style={[styles.label, { color: isDark ? '#ccc' : '#666' }]}>Duration/Time (minutes)</Text>
             <TextInput
               style={[styles.input, { 
                 backgroundColor: isDark ? '#2d3a4d' : '#fff',
