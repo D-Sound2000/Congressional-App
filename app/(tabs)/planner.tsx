@@ -797,7 +797,7 @@ export default function Planner() {
         {/* Medications */}
         {medications.length > 0 && (
           <View style={[styles.sectionCard, { backgroundColor: '#fff' }]}>
-            <Text style={[styles.sectionTitle, { color: '#333' }]}>Today's Medications</Text>
+            <Text style={[styles.sectionTitle, { color: '#333' }]}>Today&apos;s Medications</Text>
             {medications.map((medication) => (
               <View key={medication.id} style={styles.medicationItem}>
                 <Text style={styles.medicationIcon}>{medication.icon}</Text>

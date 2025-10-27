@@ -70,8 +70,8 @@ export const saveUserProfile = async (onboardingData: OnboardingData): Promise<U
       insulin_dependent: onboardingData.insulinDependent,
       medications: onboardingData.medications,
       emergency_contact: onboardingData.emergencyContact,
+      doctor_info: onboardingData.doctorInfo,
       glucose_targets: glucoseTargets,
-      // Store other data in a JSONB field if available, or skip for now
     };
 
     console.log('Saving profile data:', profileData);

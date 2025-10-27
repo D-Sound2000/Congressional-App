@@ -421,7 +421,7 @@ export default function Index() {
         <View style={styles.sectionHeaderRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>
-              Today's Smart Picks
+              Today&apos;s Smart Picks
             </Text>
             <TouchableOpacity 
               onPress={loadSmartRecipes}
@@ -476,7 +476,7 @@ export default function Index() {
         )}
         <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}> 
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Today's Reminders</Text>
+            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>Today&apos;s Reminders</Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/planner')}>
               <Text style={[styles.seeMore, { color: colors.seeMore }]}>📋 Planner</Text>
             </TouchableOpacity>

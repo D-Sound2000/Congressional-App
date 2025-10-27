@@ -93,7 +93,7 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
   const [currentStep, setCurrentStep] = useState(0);
   const [username, setUsername] = useState('');
   const [diabetesType, setDiabetesType] = useState<string | null>(null);
-  const [insulinDependent, setInsulinDependent] = useState(false);
+  const [insulinDependent, setInsulinDependent] = useState<boolean | null>(null);
   const [medications, setMedications] = useState<string[]>([]);
   const [emergencyContact, setEmergencyContact] = useState('');
   const [doctorInfo, setDoctorInfo] = useState('');
@@ -120,22 +120,61 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
       return;
     }
     
-    if (currentStep === 5 && (!emergencyContact.trim() || !doctorInfo.trim())) {
-      Alert.alert('Please fill in contact information', 'Emergency contacts are important for your safety.');
+    if (currentStep === 3 && insulinDependent === null) {
+      Alert.alert('Please make a selection', 'Please indicate whether you are insulin dependent. This affects your meal planning and recommendations.');
       return;
+    }
+    
+    // Step 4: Optional gentle prompt for medications
+    if (currentStep === 4 && medications.length === 0) {
+      Alert.alert(
+        'No medications selected',
+        'You haven\'t selected any medications. If you\'re not currently taking diabetes medications, you can skip this step and add them later in your profile.',
+        [
+          { text: 'Skip for now', style: 'default', onPress: () => setCurrentStep(currentStep + 1) },
+          { text: 'Go back to select', style: 'cancel' }
+        ]
+      );
+      return;
+    }
+    
+    if (currentStep === 5) {
+      const trimmedEmergencyContact = emergencyContact.trim();
+      const trimmedDoctorInfo = doctorInfo.trim();
+      
+      if (!trimmedEmergencyContact && !trimmedDoctorInfo) {
+        Alert.alert('Please fill in contact information', 'Both emergency contact and doctor information are required for your safety.');
+        return;
+      } else if (!trimmedEmergencyContact) {
+        Alert.alert('Emergency contact required', 'Please provide an emergency contact name and phone number.');
+        return;
+      } else if (!trimmedDoctorInfo) {
+        Alert.alert('Doctor information required', 'Please provide your doctor\'s name and contact information.');
+        return;
+      }
     }
 
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Complete onboarding with data
+      // Final validation before completing onboarding
+      const trimmedName = username.trim();
+      const trimmedEmergencyContact = emergencyContact.trim();
+      const trimmedDoctorInfo = doctorInfo.trim();
+      
+      if (!trimmedName || !diabetesType || insulinDependent === null || !trimmedEmergencyContact || !trimmedDoctorInfo) {
+        Alert.alert('Incomplete Information', 'Please go back and complete all required fields before finishing setup.');
+        return;
+      }
+      
+      // Complete onboarding with validated and trimmed data
       const onboardingData: OnboardingData = {
-        username: username.trim(),
+        username: trimmedName,
         diabetesType: diabetesType || 'type2',
-        insulinDependent,
+        insulinDependent: insulinDependent !== null ? insulinDependent : false,
         medications,
-        emergencyContact,
-        doctorInfo,
+        emergencyContact: trimmedEmergencyContact,
+        doctorInfo: trimmedDoctorInfo,
       };
       onComplete(onboardingData);
     }
@@ -159,7 +198,7 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
               Welcome to DiaBite
             </Text>
             <Text style={[styles.stepDescription, { color: isDark ? '#ccc' : '#666' }]}>
-              We're here to help you manage your diabetes with personalized meal planning, 
+              We&apos;re here to help you manage your diabetes with personalized meal planning, 
               glucose tracking, and smart recommendations tailored to your needs.
             </Text>
             <View style={styles.featureList}>
@@ -181,12 +220,6 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
                   Medication reminders
                 </Text>
               </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureIcon}>🤖</Text>
-                <Text style={[styles.featureText, { color: isDark ? '#fff' : '#333' }]}>
-                  AI-powered insights
-                </Text>
-              </View>
             </View>
           </View>
         );
@@ -195,10 +228,10 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
         return (
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { color: isDark ? '#fff' : '#333' }]}>
-              What's your name?
+              What&apos;s your name?
             </Text>
             <Text style={[styles.stepDescription, { color: isDark ? '#ccc' : '#666' }]}>
-              We'll use this to personalize your experience.
+              We&apos;ll use this to personalize your experience.
             </Text>
             <View style={styles.inputGroup}>
               <TextInput
@@ -266,7 +299,7 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
               <TouchableOpacity
                 style={[
                   styles.yesNoCard,
-                  insulinDependent && styles.yesNoCardSelected,
+                  insulinDependent === true && styles.yesNoCardSelected,
                   { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }
                 ]}
                 onPress={() => setInsulinDependent(true)}
@@ -279,7 +312,7 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
               <TouchableOpacity
                 style={[
                   styles.yesNoCard,
-                  !insulinDependent && styles.yesNoCardSelected,
+                  insulinDependent === false && styles.yesNoCardSelected,
                   { backgroundColor: isDark ? '#2d3a4d' : '#f8f9fa' }
                 ]}
                 onPress={() => setInsulinDependent(false)}
@@ -300,7 +333,7 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
               What medications do you take?
             </Text>
             <Text style={[styles.stepDescription, { color: isDark ? '#ccc' : '#666' }]}>
-              We'll help you track and remind you about your medications.
+              We&apos;ll help you track and remind you about your medications.
             </Text>
             <View style={styles.medicationGrid}>
               {['Metformin', 'Insulin', 'Glipizide', 'Sitagliptin', 'Canagliflozin', 'Other'].map((med) => (
@@ -335,7 +368,7 @@ export default function DiabetesOnboarding({ onComplete, isDark = false }: Diabe
               Emergency information
             </Text>
             <Text style={[styles.stepDescription, { color: isDark ? '#ccc' : '#666' }]}>
-              In case of emergency, we'll have your important contacts ready.
+              In case of emergency, we&apos;ll have your important contacts ready.
             </Text>
             <View style={styles.emergencyForm}>
               <View style={styles.inputGroup}>
